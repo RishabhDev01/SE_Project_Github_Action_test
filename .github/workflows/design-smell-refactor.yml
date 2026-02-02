@@ -121,12 +121,12 @@ jobs:
         run: |
           cd design_smell_pipeline
           
-          # Check for smell files
-          if [ -f "output/smells/DesignSmells.csv" ]; then
-            echo "Found DesignSmells.csv"
-            cat output/smells/DesignSmells.csv
+          # Check for smell files - DesigniteJava uses these file names
+          if [ -f "output/smells/designCodeSmells.csv" ]; then
+            echo "Found designCodeSmells.csv"
+            head -20 output/smells/designCodeSmells.csv
           else
-            echo "No DesignSmells.csv found"
+            echo "No designCodeSmells.csv found"
           fi
           
           # Create detection report
@@ -138,21 +138,25 @@ jobs:
           os.makedirs('output', exist_ok=True)
           
           reports = []
-          smells_file = 'output/smells/DesignSmells.csv'
+          
+          # DesigniteJava uses 'designCodeSmells.csv' not 'DesignSmells.csv'
+          smells_file = 'output/smells/designCodeSmells.csv'
           
           if os.path.exists(smells_file):
               with open(smells_file, 'r') as f:
                   reader = csv.DictReader(f)
                   for row in reader:
                       reports.append({
-                          'file': row.get('Type Name', 'Unknown') + '.java',
-                          'package': row.get('Package Name', ''),
-                          'smell_type': row.get('Design Smell', ''),
-                          'cause': row.get('Cause of the Smell', '')
+                          'file': row.get('Type Name', row.get('type_name', 'Unknown')) + '.java',
+                          'package': row.get('Package Name', row.get('package_name', '')),
+                          'smell_type': row.get('Code Smell', row.get('Design Smell', '')),
+                          'cause': row.get('Cause', row.get('Cause of the Smell', ''))
                       })
               print(f'Files to refactor: {len(reports)}')
-              for r in reports:
+              for r in reports[:10]:  # Show first 10
                   print(f'  - {r[\"file\"]}: {r[\"smell_type\"]}')
+              if len(reports) > 10:
+                  print(f'  ... and {len(reports) - 10} more')
           else:
               print('No smell data found')
               print('Files to refactor: 0')
