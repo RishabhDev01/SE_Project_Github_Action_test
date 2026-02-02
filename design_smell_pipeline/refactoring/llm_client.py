@@ -16,6 +16,11 @@ from abc import ABC, abstractmethod
 logger = logging.getLogger(__name__)
 
 
+class RateLimitError(Exception):
+    """Exception raised when API rate limit (daily tokens) is exceeded"""
+    pass
+
+
 class BaseLLMClient(ABC):
     """Abstract base class for LLM clients"""
     
@@ -166,7 +171,12 @@ class GroqClient(BaseLLMClient):
             return response.choices[0].message.content
             
         except Exception as e:
+            error_str = str(e)
             logger.error(f"Groq API error: {e}")
+            # Detect daily rate limit (TPD = tokens per day)
+            if 'rate_limit' in error_str.lower() and ('TPD' in error_str or 'tokens per day' in error_str.lower()):
+                logger.warning("Daily token limit reached - stopping to save results")
+                raise RateLimitError("Daily token limit exceeded") from e
             raise
             
     def count_tokens(self, text: str) -> int:
@@ -322,6 +332,9 @@ class LLMClient:
                         
                 return response
                 
+            except RateLimitError:
+                # Don't retry rate limit errors - propagate immediately
+                raise
             except Exception as e:
                 last_error = e
                 logger.warning(f"Attempt {attempt + 1} failed: {e}")

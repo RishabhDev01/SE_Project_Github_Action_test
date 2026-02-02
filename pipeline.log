@@ -1,0 +1,29 @@
+2026-02-02 21:56:44,762 - __main__ - INFO - ============================================================
+2026-02-02 21:56:44,763 - __main__ - INFO - Starting Design Smell Detection & Refactoring Pipeline
+2026-02-02 21:56:44,764 - __main__ - INFO - ============================================================
+2026-02-02 21:56:44,785 - detection.smell_parser - INFO - Starting design smell detection...
+2026-02-02 21:56:44,787 - detection.designite_runner - WARNING - DesigniteJava not found at tools\DesigniteJava.jar
+2026-02-02 21:56:44,790 - detection.designite_runner - INFO - Please download DesigniteJava manually from https://www.designite-tools.com/designitejava/
+2026-02-02 21:56:44,791 - detection.designite_runner - INFO - Place the JAR file at: tools\DesigniteJava.jar
+2026-02-02 21:56:44,793 - detection.designite_runner - ERROR - DesigniteJava is not available
+2026-02-02 21:56:44,794 - detection.smell_parser - WARNING - DesigniteJava analysis failed, continuing with metrics only
+2026-02-02 21:56:44,795 - detection.typemetrics_runner - INFO - Analyzing Java files in app\src\main\java
+2026-02-02 21:57:06,080 - detection.typemetrics_runner - WARNING - Syntax error parsing app\src\main\java\org\apache\roller\weblogger\ui\struts2\admin\GlobalCommentManagementBean.java: 
+2026-02-02 21:57:07,999 - detection.typemetrics_runner - WARNING - Syntax error parsing app\src\main\java\org\apache\roller\weblogger\ui\struts2\editor\CommentsBean.java: 
+2026-02-02 21:57:11,741 - detection.typemetrics_runner - WARNING - Syntax error parsing app\src\main\java\org\apache\roller\weblogger\util\MailUtil.java: 
+2026-02-02 21:57:12,133 - detection.typemetrics_runner - WARNING - Syntax error parsing app\src\main\java\org\apache\roller\weblogger\util\StandaloneWebappClassLoader.java: 
+2026-02-02 21:57:13,393 - detection.typemetrics_runner - WARNING - Syntax error parsing app\src\main\java\org\apache\roller\weblogger\webservices\atomprotocol\MediaCollection.java: 
+2026-02-02 21:57:14,443 - detection.typemetrics_runner - INFO - Analyzed 429 Java files
+2026-02-02 21:57:14,444 - detection.smell_parser - INFO - Detection completed
+2026-02-02 21:57:14,452 - detection.smell_parser - INFO - Aggregating smells...
+2026-02-02 21:57:14,453 - detection.designite_runner - WARNING - Design smells file not found: output\smells\designCodeSmells.csv
+2026-02-02 21:57:14,454 - detection.designite_runner - WARNING - Implementation smells file not found: output\smells\implementationCodeSmells.csv
+2026-02-02 21:57:14,455 - detection.smell_parser - INFO - Aggregated 0 smell reports
+2026-02-02 21:57:14,456 - detection.smell_parser - INFO - Aggregating smells...
+2026-02-02 21:57:14,458 - detection.designite_runner - WARNING - Design smells file not found: output\smells\designCodeSmells.csv
+2026-02-02 21:57:14,460 - detection.designite_runner - WARNING - Implementation smells file not found: output\smells\implementationCodeSmells.csv
+2026-02-02 21:57:14,462 - detection.smell_parser - INFO - Aggregated 0 smell reports
+2026-02-02 21:57:14,463 - __main__ - INFO - Found 0 files to refactor:
+2026-02-02 21:57:14,464 - __main__ - INFO - No files need refactoring
+2026-02-02 21:57:14,466 - __main__ - INFO - 
+Total execution time: 29.70 seconds

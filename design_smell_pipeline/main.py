@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 # Import pipeline modules
 from detection import SmellParser, SmellReport
-from refactoring import LLMClient, ContextManager, RefactoringPrompts, CodeValidator
+from refactoring import LLMClient, RateLimitError, ContextManager, RefactoringPrompts, CodeValidator
 from pr_generator import GitOperations, GitHubAPI, PRDescriptionGenerator, RefactoringResult
 
 
@@ -172,8 +172,13 @@ class RefactoringPipeline:
                 return False
                 
         success_count = 0
+        rate_limit_hit = False
         
         for report in files:
+            if rate_limit_hit:
+                logger.info(f"  Skipping {report.class_name} due to rate limit")
+                continue
+                
             logger.info(f"\n  Refactoring: {report.class_name}")
             
             try:
@@ -185,6 +190,9 @@ class RefactoringPipeline:
                 else:
                     logger.warning(f"  ❌ Failed to refactor {report.class_name}")
                     
+            except RateLimitError:
+                logger.warning(f"  ⚠️ Rate limit reached - stopping to save {success_count} successful refactoring(s)")
+                rate_limit_hit = True
             except Exception as e:
                 logger.error(f"  Error refactoring {report.class_name}: {e}")
                 
