@@ -10,6 +10,7 @@ This module handles:
 
 import subprocess
 import logging
+import os
 import tempfile
 import shutil
 import re
