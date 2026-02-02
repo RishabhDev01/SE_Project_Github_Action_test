@@ -63,7 +63,21 @@ class CodeValidator:
         self.compile_command = validation_config.get('compile_command', 'mvn compile -q')
         self.test_command = validation_config.get('test_command', 'mvn test -q')
         
-        self.project_root = Path(config.get('detection', {}).get('source_path', '.')).parent.parent.parent
+        # Determine project root - check for CI environment first
+        github_workspace = os.environ.get('GITHUB_WORKSPACE')
+        if github_workspace:
+            self.project_root = Path(github_workspace)
+        else:
+            # Try to find project root by looking for .git directory or pom.xml
+            source_path = Path(config.get('detection', {}).get('source_path', '.')).resolve()
+            project_root = source_path
+            for _ in range(10):  # Limit traversal depth
+                if (project_root / '.git').exists() or (project_root / 'pom.xml').exists():
+                    break
+                if project_root.parent == project_root:  # Reached filesystem root
+                    break
+                project_root = project_root.parent
+            self.project_root = project_root
         
     def validate_syntax(self, code: str) -> ValidationResult:
         """
@@ -112,7 +126,12 @@ class CodeValidator:
         """
         if not self.run_compile:
             return ValidationResult(is_valid=True, compiles=True)
-            
+        
+        # Ensure file_path is absolute
+        if not file_path.is_absolute():
+            file_path = self.project_root / file_path
+        file_path = file_path.resolve()
+        
         # Store original content
         original_content = None
         if file_path.exists():
@@ -176,7 +195,12 @@ class CodeValidator:
         """
         if not self.run_tests:
             return ValidationResult(is_valid=True, tests_pass=True)
-            
+        
+        # Ensure file_path is absolute
+        if not file_path.is_absolute():
+            file_path = self.project_root / file_path
+        file_path = file_path.resolve()
+        
         # Store original content
         original_content = None
         if file_path.exists():
