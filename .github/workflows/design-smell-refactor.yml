@@ -3,7 +3,7 @@
 # Daily automated pipeline that detects design smells using DesigniteJava & TypeMetrics, 
 # refactors code using Groq AI (FREE!), and creates Pull Requests.
 
-name: Design Smell Detection & Refactoring
+name: Design Smell Detection and Refactoring
 
 on:
   # Daily schedule at 2:00 AM UTC
