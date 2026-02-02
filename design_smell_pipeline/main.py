@@ -303,16 +303,45 @@ class RefactoringPipeline:
         
     def _find_file(self, relative_path: str) -> Optional[Path]:
         """Find the actual file path from a relative path."""
-        # Try direct match
-        full_path = self.source_path / relative_path
-        if full_path.exists():
-            return full_path
-            
-        # Try searching
-        for java_file in self.source_path.rglob("*.java"):
-            if relative_path in str(java_file):
-                return java_file
+        # Get repo root (parent of design_smell_pipeline)
+        repo_root = Path(__file__).parent.parent
+        
+        # Possible source directories to search
+        source_dirs = [
+            repo_root / "app" / "src" / "main" / "java",
+            repo_root / "src" / "main" / "java",
+            repo_root / "src",
+            repo_root,
+            self.source_path,
+        ]
+        
+        # Try each source directory
+        for source_dir in source_dirs:
+            if not source_dir.exists():
+                continue
                 
+            # Try direct match with relative path
+            full_path = source_dir / relative_path
+            if full_path.exists():
+                return full_path
+                
+        # If still not found, try to find by class name
+        class_name = Path(relative_path).stem  # e.g., "ThemeMetadataParser"
+        target_file = f"{class_name}.java"
+        
+        for source_dir in source_dirs:
+            if not source_dir.exists():
+                continue
+            for java_file in source_dir.rglob(target_file):
+                # Verify it matches the expected path pattern
+                if relative_path.replace("/", str(java_file).replace("\\", "/")) or \
+                   str(java_file).replace("\\", "/").endswith(relative_path):
+                    return java_file
+                # If class name matches, return it
+                if java_file.name == target_file:
+                    return java_file
+                    
+        logger.debug(f"File search failed for: {relative_path}")
         return None
         
     def _extract_java_code(self, response: str) -> str:
