@@ -159,12 +159,13 @@ class DesigniteRunner:
     
     def parse_design_smells(self) -> List[DesignSmell]:
         """
-        Parse the DesignSmells.csv output file.
+        Parse the designCodeSmells.csv output file.
         
         Returns:
             List of DesignSmell objects
         """
-        csv_path = self.output_path / "DesignSmells.csv"
+        # DesigniteJava uses 'designCodeSmells.csv' not 'DesignSmells.csv'
+        csv_path = self.output_path / "designCodeSmells.csv"
         smells = []
         
         if not csv_path.exists():
@@ -175,13 +176,14 @@ class DesigniteRunner:
             with open(csv_path, 'r', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
                 for row in reader:
+                    # DesigniteJava column names may vary
                     smell = DesignSmell(
-                        project=row.get('Project Name', ''),
-                        package=row.get('Package Name', ''),
-                        type_name=row.get('Type Name', ''),
-                        smell_type=row.get('Design Smell', ''),
-                        cause=row.get('Cause of the Smell', ''),
-                        severity=self.SMELL_SEVERITY.get(row.get('Design Smell', ''), 'medium')
+                        project=row.get('Project Name', row.get('project_name', '')),
+                        package=row.get('Package Name', row.get('package_name', '')),
+                        type_name=row.get('Type Name', row.get('type_name', '')),
+                        smell_type=row.get('Code Smell', row.get('Design Smell', '')),
+                        cause=row.get('Cause', row.get('Cause of the Smell', '')),
+                        severity=self.SMELL_SEVERITY.get(row.get('Code Smell', row.get('Design Smell', '')), 'medium')
                     )
                     
                     # Construct file path from package and type
@@ -197,12 +199,13 @@ class DesigniteRunner:
     
     def parse_implementation_smells(self) -> List[ImplementationSmell]:
         """
-        Parse the ImplementationSmells.csv output file.
+        Parse the implementationCodeSmells.csv output file.
         
         Returns:
             List of ImplementationSmell objects
         """
-        csv_path = self.output_path / "ImplementationSmells.csv"
+        # DesigniteJava uses 'implementationCodeSmells.csv' not 'ImplementationSmells.csv'
+        csv_path = self.output_path / "implementationCodeSmells.csv"
         smells = []
         
         if not csv_path.exists():
@@ -213,14 +216,15 @@ class DesigniteRunner:
             with open(csv_path, 'r', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
                 for row in reader:
+                    # DesigniteJava column names may vary
                     smell = ImplementationSmell(
-                        project=row.get('Project Name', ''),
-                        package=row.get('Package Name', ''),
-                        type_name=row.get('Type Name', ''),
-                        method_name=row.get('Method Name', ''),
-                        smell_type=row.get('Implementation Smell', ''),
-                        cause=row.get('Cause of the Smell', ''),
-                        severity=self.SMELL_SEVERITY.get(row.get('Implementation Smell', ''), 'medium')
+                        project=row.get('Project Name', row.get('project_name', '')),
+                        package=row.get('Package Name', row.get('package_name', '')),
+                        type_name=row.get('Type Name', row.get('type_name', '')),
+                        method_name=row.get('Method Name', row.get('method_name', '')),
+                        smell_type=row.get('Code Smell', row.get('Implementation Smell', '')),
+                        cause=row.get('Cause', row.get('Cause of the Smell', '')),
+                        severity=self.SMELL_SEVERITY.get(row.get('Code Smell', row.get('Implementation Smell', '')), 'medium')
                     )
                     
                     smell.file_path = self._construct_file_path(smell.package, smell.type_name)
