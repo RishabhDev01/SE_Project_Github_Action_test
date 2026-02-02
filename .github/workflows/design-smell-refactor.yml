@@ -1,7 +1,7 @@
 # Design Smell Detection & Refactoring Pipeline
 
-Daily automated pipeline that detects design smells using DesigniteJava & TypeMetrics, 
-refactors code using Grok AI (FREE!), and creates Pull Requests.
+# Daily automated pipeline that detects design smells using DesigniteJava & TypeMetrics, 
+# refactors code using Groq AI (FREE!), and creates Pull Requests.
 
 name: Design Smell Detection & Refactoring
 
@@ -122,14 +122,14 @@ jobs:
           retention-days: 30
           
       # =====================================================
-      # REFACTORING PHASE (Using FREE Grok API!)
+      # REFACTORING PHASE (Using FREE Groq API!)
       # =====================================================
       
-      - name: ✨ Run LLM Refactoring with Grok
+      - name: ✨ Run LLM Refactoring with Groq
         id: refactoring
         env:
-          # Grok API is FREE! Get key from https://console.x.ai/
-          GROK_API_KEY: ${{ secrets.GROK_API_KEY }}
+          # Groq API is FREE! Get key from https://console.groq.com/
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cd design_smell_pipeline

@@ -102,15 +102,15 @@ class OpenAIClient(BaseLLMClient):
         return len(text) // 4
 
 
-class GrokClient(BaseLLMClient):
-    """xAI Grok client implementation (uses OpenAI-compatible API)"""
+class GroqClient(BaseLLMClient):
+    """Groq client implementation (uses OpenAI-compatible API with ultra-fast inference)"""
     
     def __init__(self, config: Dict):
         """
-        Initialize Grok client.
+        Initialize Groq client.
         
-        Grok API uses OpenAI-compatible format with custom base URL.
-        Get your free API key from: https://console.x.ai/
+        Groq API uses OpenAI-compatible format with custom base URL.
+        Get your free API key from: https://console.groq.com/
         
         Args:
             config: LLM configuration dictionary
@@ -120,25 +120,26 @@ class GrokClient(BaseLLMClient):
         except ImportError:
             raise ImportError("OpenAI package not installed. Run: pip install openai")
             
-        api_key = os.environ.get('GROK_API_KEY') or os.environ.get('XAI_API_KEY')
+        api_key = os.environ.get('GROQ_API_KEY')
         if not api_key:
-            raise ValueError("GROK_API_KEY or XAI_API_KEY environment variable not set")
+            raise ValueError("GROQ_API_KEY environment variable not set")
             
-        # Grok uses OpenAI-compatible API with custom base URL
+        # Groq uses OpenAI-compatible API with custom base URL
         self.client = OpenAI(
             api_key=api_key,
-            base_url="https://api.x.ai/v1"
+            base_url="https://api.groq.com/openai/v1"
         )
         
-        self.model = config.get('grok', {}).get('model', 'grok-beta')
-        self.max_tokens = config.get('grok', {}).get('max_tokens', 8192)
-        self.temperature = config.get('grok', {}).get('temperature', 0.2)
+        # Groq supports: llama-3.3-70b-versatile, mixtral-8x7b-32768, llama3-8b-8192
+        self.model = config.get('groq', {}).get('model', 'llama-3.3-70b-versatile')
+        self.max_tokens = config.get('groq', {}).get('max_tokens', 8192)
+        self.temperature = config.get('groq', {}).get('temperature', 0.2)
         
-        logger.info(f"Initialized Grok client with model: {self.model}")
+        logger.info(f"Initialized Groq client with model: {self.model}")
         
     def generate(self, prompt: str, system_prompt: Optional[str] = None) -> str:
         """
-        Generate a response from Grok.
+        Generate a response from Groq.
         
         Args:
             prompt: User prompt
@@ -165,7 +166,7 @@ class GrokClient(BaseLLMClient):
             return response.choices[0].message.content
             
         except Exception as e:
-            logger.error(f"Grok API error: {e}")
+            logger.error(f"Groq API error: {e}")
             raise
             
     def count_tokens(self, text: str) -> int:
@@ -259,7 +260,7 @@ class GeminiClient(BaseLLMClient):
 
 class LLMClient:
     """
-    Unified LLM client that supports Grok (xAI), OpenAI, and Gemini.
+    Unified LLM client that supports Groq, OpenAI, and Gemini.
     Handles retries and rate limiting.
     """
     
@@ -271,13 +272,13 @@ class LLMClient:
             config: Full pipeline configuration
         """
         llm_config = config.get('llm', {})
-        provider = llm_config.get('provider', 'grok').lower()
+        provider = llm_config.get('provider', 'groq').lower()
         
         self.max_retries = config.get('refactoring', {}).get('max_retries', 3)
         self.retry_delay = 5  # seconds
         
-        if provider == 'grok':
-            self._client = GrokClient(llm_config)
+        if provider == 'groq':
+            self._client = GroqClient(llm_config)
         elif provider == 'openai':
             self._client = OpenAIClient(llm_config)
         elif provider == 'gemini':

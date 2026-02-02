@@ -1,131 +1,102 @@
 # Design Smell Detection & Refactoring Pipeline Configuration
-# ============================================================
+# ===========================================================
 
-# Detection Settings
+# LLM Configuration
+llm:
+  # Provider: groq (FREE), openai, or gemini
+  provider: "groq"
+  
+  # Groq Configuration (FREE - https://console.groq.com/)
+  groq:
+    # Available models: llama-3.3-70b-versatile, mixtral-8x7b-32768, llama3-8b-8192
+    model: "llama-3.3-70b-versatile"
+    max_tokens: 8192
+    temperature: 0.2
+  
+  # OpenAI Configuration (backup)
+  openai:
+    model: "gpt-4o-mini"
+    max_tokens: 8192
+    temperature: 0.2
+  
+  # Google Gemini Configuration (backup)
+  gemini:
+    model: "gemini-1.5-flash"
+    max_tokens: 8192
+    temperature: 0.2
+
+# Detection Configuration
 detection:
-  # Path to the Java source code to analyze
+  # Path to Java source code
   source_path: "./app/src/main/java"
   
-  # Output directory for detection reports
-  output_path: "./design_smell_pipeline/output/smells"
+  # Output directory for smell reports
+  output_path: "./output/smells"
+  
+  # DesigniteJava settings
+  designite:
+    jar_path: "./tools/DesigniteJava.jar"
+  
+  # TypeMetrics settings
+  typemetrics:
+    jar_path: "./tools/TypeMetrics.jar"
   
   # Patterns to exclude from analysis
   excluded_patterns:
     - "**/test/**"
     - "**/generated/**"
-    - "**/target/**"
-  
-  # DesigniteJava settings
-  designite:
-    jar_path: "./design_smell_pipeline/tools/DesigniteJava.jar"
-    # Download URL (for setup)
-    download_url: "https://www.designite-tools.com/static/download/DJava/DesigniteJava.jar"
+    - "**/R.java"
+    - "**/BuildConfig.java"
 
-# LLM Settings
-llm:
-  # Provider: "grok" (FREE!), "openai", or "gemini"
-  provider: "grok"
-  
-  # Grok (xAI) configuration - FREE API!
-  # Get your API key from: https://console.x.ai/
-  grok:
-    model: "grok-beta"
-    max_tokens: 8192
-    temperature: 0.2
-  
-  # OpenAI configuration (if using)
-  openai:
-    model: "gpt-4-turbo"
-    max_tokens: 4096
-    temperature: 0.2
-    
-  # Gemini configuration (if using)
-  gemini:
-    model: "gemini-1.5-pro"
-    max_tokens: 8192
-    temperature: 0.2
-
-# Refactoring Settings
+# Refactoring Configuration
 refactoring:
-  # Maximum number of files to refactor per run
-  max_files_per_run: 5
+  # Maximum file size to process (bytes)
+  max_file_size: 50000  # 50KB
   
-  # Maximum retries for LLM if validation fails
+  # Maximum chunk size for large files
+  max_chunk_size: 30000  # 30KB
+  
+  # Maximum files to refactor per run
+  max_files_per_run: 10
+  
+  # Maximum smells to fix per file
+  max_smells_per_file: 5
+  
+  # Retry configuration
   max_retries: 3
-  
-  # Priority order for smell types
-  priority_smells:
-    - "God Class"
-    - "Long Method"
-    - "Feature Envy"
-    - "Complex Method"
-    - "Long Parameter List"
-    - "Data Class"
-    - "Blob Class"
-  
-  # Minimum severity to consider for refactoring
-  min_severity: "medium"
-  
-  # Output directory for refactored files
-  output_path: "./design_smell_pipeline/output/refactored"
+  retry_delay: 5
 
-# Large File Handling
-chunking:
-  # Maximum file size in bytes before chunking
-  max_file_size: 50000
-  
-  # Maximum tokens per chunk for LLM
-  max_chunk_tokens: 100000
-  
-  # Overlap lines between chunks for context
-  overlap_lines: 20
-  
-  # Chunking strategy: "ast_based" or "line_based"
-  strategy: "ast_based"
-
-# Git Settings
-git:
-  # Branch naming pattern
-  branch_prefix: "refactoring/design-smells"
-  
-  # Commit message template
-  commit_message_template: "refactor: Automated design smell fixes - {timestamp}"
-
-# PR Settings
-pr:
-  # Base branch for PRs
-  base_branch: "master"
-  
-  # Labels to add to PRs
-  labels:
-    - "refactoring"
-    - "automated"
-    - "design-quality"
-  
-  # Whether to request reviewers
-  assign_reviewers: true
-  
-  # List of reviewers (GitHub usernames)
-  reviewers: []
-  
-  # PR title template
-  title_template: "🔧 Automated Design Smell Refactoring - {date}"
-
-# Logging
-logging:
-  level: "INFO"
-  file: "./design_smell_pipeline/logs/pipeline.log"
-
-# Validation Settings
+# Validation Configuration
 validation:
-  # Run Maven compile after refactoring
+  # Whether to run compilation check
   run_compile: true
   
-  # Run tests after refactoring
+  # Whether to run tests
   run_tests: true
   
-  # Maven command for compilation
+  # Compile command
   compile_command: "mvn compile -q"
   
-  # Maven command for testing
+  # Test command
   test_command: "mvn test -q"
+
+# Pull Request Configuration
+pr:
+  # Base branch for PRs
+  base_branch: "main"
+  
+  # PR title prefix
+  title_prefix: "🔧 Refactor:"
+  
+  # Auto-assign reviewers (GitHub usernames)
+  reviewers: []
+  
+  # Labels to add to PR
+  labels:
+    - "automated"
+    - "refactoring"
+
+# Schedule Configuration
+schedule:
+  # Cron expression for scheduled runs (2 AM UTC daily)
+  cron: "0 2 * * *"
