@@ -1,0 +1,130 @@
+INFO  2026-01-31 18:46:48 [main] ContextLoader - Root WebApplicationContext: initialization started
+INFO  2026-01-31 18:46:49 [main] SpringSecurityCoreVersion - You are running with Spring Security Core 5.8.14
+INFO  2026-01-31 18:46:49 [main] SecurityNamespaceHandler - Spring Security 'config' module version is 5.8.14
+INFO  2026-01-31 18:46:49 [main] HttpSecurityBeanDefinitionParser - Checking sorted filter chain: [Root bean: class [org.springframework.security.web.session.DisableEncodeUrlFilter]; scope=; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; factoryBeanName=null; factoryMethodName=null; initMethodName=null; destroyMethodName=null, order = 100, Root bean: class [org.springframework.security.web.context.SecurityContextPersistenceFilter]; scope=; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; factoryBeanName=null; factoryMethodName=null; initMethodName=null; destroyMethodName=null, order = 400, Root bean: class [org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter]; scope=; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; factoryBeanName=null; factoryMethodName=null; initMethodName=null; destroyMethodName=null, order = 600, Root bean: class [org.springframework.security.web.header.HeaderWriterFilter]; scope=; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; factoryBeanName=null; factoryMethodName=null; initMethodName=null; destroyMethodName=null, order = 700, <org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter#0>, order = 2100, <openidAuthenticationProcessingFilter>, order = 2200, Root bean: class [org.springframework.security.web.savedrequest.RequestCacheAwareFilter]; scope=; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; factoryBeanName=null; factoryMethodName=null; initMethodName=null; destroyMethodName=null, order = 2800, Root bean: class [null]; scope=; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; factoryBeanName=org.springframework.security.config.http.HttpConfigurationBuilder$SecurityContextHolderAwareRequestFilterBeanFactory#0; factoryMethodName=getBean; initMethodName=null; destroyMethodName=null, order = 2900, Root bean: class [org.springframework.security.web.authentication.rememberme.RememberMeAuthenticationFilter]; scope=; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; factoryBeanName=null; factoryMethodName=null; initMethodName=null; destroyMethodName=null, order = 3100, Root bean: class [org.springframework.security.web.authentication.AnonymousAuthenticationFilter]; scope=; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; factoryBeanName=null; factoryMethodName=null; initMethodName=null; destroyMethodName=null, order = 3200, Root bean: class [org.springframework.security.web.session.SessionManagementFilter]; scope=; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; factoryBeanName=null; factoryMethodName=null; initMethodName=null; destroyMethodName=null, order = 3500, Root bean: class [org.springframework.security.web.access.ExceptionTranslationFilter]; scope=; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; factoryBeanName=null; factoryMethodName=null; initMethodName=null; destroyMethodName=null, order = 3600, <org.springframework.security.web.access.intercept.FilterSecurityInterceptor#0>, order = 3700]
+INFO  2026-01-31 18:46:49 [main] DefaultSecurityFilterChain - Will not secure Ant [pattern='/images/**']
+INFO  2026-01-31 18:46:49 [main] DefaultSecurityFilterChain - Will not secure Ant [pattern='/scripts/**']
+INFO  2026-01-31 18:46:49 [main] DefaultSecurityFilterChain - Will not secure Ant [pattern='/styles/**']
+WARN  2026-01-31 18:46:49 [main] RealmVerifier - RP discovery / realm validation disabled; 
+INFO  2026-01-31 18:46:49 [main] DefaultSecurityFilterChain - Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@6345dc06, org.springframework.security.web.context.SecurityContextPersistenceFilter@628d6320, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@22025464, org.springframework.security.web.header.HeaderWriterFilter@77eb0e47, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter@3a034950, org.apache.roller.weblogger.ui.core.filters.CustomOpenIDAuthenticationProcessingFilter@331eb953, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@38f7a20, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@2c39c520, org.springframework.security.web.authentication.rememberme.RememberMeAuthenticationFilter@c50503e, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@4ac2b4c6, org.springframework.security.web.session.SessionManagementFilter@326489c4, org.springframework.security.web.access.ExceptionTranslationFilter@50165a6d, org.springframework.security.web.access.intercept.FilterSecurityInterceptor@5ec921f1]
+INFO  2026-01-31 18:46:49 [main] DefaultFilterChainValidator - Checking whether login URL '/roller-ui/login.rol' is accessible with your configuration
+INFO  2026-01-31 18:46:49 [main] ContextLoader - Root WebApplicationContext initialized in 1088 ms
+INFO  2026-01-31 18:46:49 [main] DatabaseProvider - SUCCESS: Got parameters. Using configuration type JDBC_PROPERTIES
+INFO  2026-01-31 18:46:49 [main] DatabaseProvider - -- Using JDBC driver class: org.apache.derby.jdbc.ClientDriver
+INFO  2026-01-31 18:46:49 [main] DatabaseProvider - -- Using JDBC connection URL: jdbc:derby://localhost:4224/memory:rollerdb;create=true
+INFO  2026-01-31 18:46:49 [main] DatabaseProvider - -- Using JDBC username: app
+INFO  2026-01-31 18:46:49 [main] DatabaseProvider - -- Using JDBC password: [hidden]
+INFO  2026-01-31 18:46:49 [main] DatabaseProvider - SUCCESS: loaded JDBC driver class [org.apache.derby.jdbc.ClientDriver]
+WARN  2026-01-31 18:46:50 [main] WebloggerStartup - Failed to setup mail provider, continuing anyways.
+Reason: ERROR connecting to mail server
+INFO  2026-01-31 18:46:50 [main] WebloggerStartup - The cause of setting up mail provider error was: 
+org.apache.roller.weblogger.business.startup.StartupException: ERROR connecting to mail server
+	at org.apache.roller.weblogger.business.MailProvider.<init>(MailProvider.java:99) ~[classes/:?]
+	at org.apache.roller.weblogger.business.startup.WebloggerStartup.prepare(WebloggerStartup.java:177) [classes/:?]
+	at org.apache.roller.weblogger.ui.core.RollerContext.contextInitialized(RollerContext.java:154) [classes/:?]
+	at org.eclipse.jetty.server.handler.ContextHandler.callContextInitialized(ContextHandler.java:1049) [jetty-server-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.servlet.ServletContextHandler.callContextInitialized(ServletContextHandler.java:624) [jetty-servlet-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.server.handler.ContextHandler.contextInitialized(ContextHandler.java:984) [jetty-server-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.servlet.ServletHandler.initialize(ServletHandler.java:740) [jetty-servlet-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.servlet.ServletContextHandler.startContext(ServletContextHandler.java:392) [jetty-servlet-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.webapp.WebAppContext.startContext(WebAppContext.java:1304) [jetty-webapp-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.server.handler.ContextHandler.doStart(ContextHandler.java:901) [jetty-server-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.servlet.ServletContextHandler.doStart(ServletContextHandler.java:306) [jetty-servlet-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.webapp.WebAppContext.doStart(WebAppContext.java:532) [jetty-webapp-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.maven.plugin.MavenWebAppContext.doStart(MavenWebAppContext.java:294) [jetty-maven-plugin-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.util.component.AbstractLifeCycle.start(AbstractLifeCycle.java:93) [jetty-util-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.util.component.ContainerLifeCycle.start(ContainerLifeCycle.java:171) [jetty-util-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.util.component.ContainerLifeCycle.doStart(ContainerLifeCycle.java:121) [jetty-util-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.server.handler.AbstractHandler.doStart(AbstractHandler.java:89) [jetty-server-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.util.component.AbstractLifeCycle.start(AbstractLifeCycle.java:93) [jetty-util-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.util.component.ContainerLifeCycle.start(ContainerLifeCycle.java:171) [jetty-util-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.util.component.ContainerLifeCycle.doStart(ContainerLifeCycle.java:121) [jetty-util-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.server.handler.AbstractHandler.doStart(AbstractHandler.java:89) [jetty-server-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.util.component.AbstractLifeCycle.start(AbstractLifeCycle.java:93) [jetty-util-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.util.component.ContainerLifeCycle.start(ContainerLifeCycle.java:171) [jetty-util-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.server.Server.start(Server.java:470) [jetty-server-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.util.component.ContainerLifeCycle.doStart(ContainerLifeCycle.java:114) [jetty-util-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.server.handler.AbstractHandler.doStart(AbstractHandler.java:89) [jetty-server-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.server.Server.doStart(Server.java:415) [jetty-server-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.util.component.AbstractLifeCycle.start(AbstractLifeCycle.java:93) [jetty-util-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.maven.plugin.JettyEmbedder.doStart(JettyEmbedder.java:224) [jetty-maven-plugin-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.util.component.AbstractLifeCycle.start(AbstractLifeCycle.java:93) [jetty-util-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.maven.plugin.JettyRunMojo.startJettyEmbedded(JettyRunMojo.java:97) [jetty-maven-plugin-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.maven.plugin.AbstractWebAppMojo.startJetty(AbstractWebAppMojo.java:441) [jetty-maven-plugin-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.maven.plugin.AbstractWebAppMojo.execute(AbstractWebAppMojo.java:419) [jetty-maven-plugin-10.0.24.jar:10.0.24]
+	at org.eclipse.jetty.maven.plugin.JettyRunMojo.execute(JettyRunMojo.java:85) [jetty-maven-plugin-10.0.24.jar:10.0.24]
+	at org.apache.maven.plugin.DefaultBuildPluginManager.executeMojo(DefaultBuildPluginManager.java:126) [maven-core-3.9.12.jar:3.9.12]
+	at org.apache.maven.lifecycle.internal.MojoExecutor.doExecute2(MojoExecutor.java:328) [maven-core-3.9.12.jar:3.9.12]
+	at org.apache.maven.lifecycle.internal.MojoExecutor.doExecute(MojoExecutor.java:316) [maven-core-3.9.12.jar:3.9.12]
+	at org.apache.maven.lifecycle.internal.MojoExecutor.execute(MojoExecutor.java:212) [maven-core-3.9.12.jar:3.9.12]
+	at org.apache.maven.lifecycle.internal.MojoExecutor.execute(MojoExecutor.java:174) [maven-core-3.9.12.jar:3.9.12]
+	at org.apache.maven.lifecycle.internal.MojoExecutor.access$000(MojoExecutor.java:75) [maven-core-3.9.12.jar:3.9.12]
+	at org.apache.maven.lifecycle.internal.MojoExecutor$1.run(MojoExecutor.java:162) [maven-core-3.9.12.jar:3.9.12]
+	at org.apache.maven.plugin.DefaultMojosExecutionStrategy.execute(DefaultMojosExecutionStrategy.java:39) [maven-core-3.9.12.jar:3.9.12]
+	at org.apache.maven.lifecycle.internal.MojoExecutor.execute(MojoExecutor.java:159) [maven-core-3.9.12.jar:3.9.12]
+	at org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject(LifecycleModuleBuilder.java:105) [maven-core-3.9.12.jar:3.9.12]
+	at org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject(LifecycleModuleBuilder.java:73) [maven-core-3.9.12.jar:3.9.12]
+	at org.apache.maven.lifecycle.internal.builder.singlethreaded.SingleThreadedBuilder.build(SingleThreadedBuilder.java:53) [maven-core-3.9.12.jar:3.9.12]
+	at org.apache.maven.lifecycle.internal.LifecycleStarter.execute(LifecycleStarter.java:118) [maven-core-3.9.12.jar:3.9.12]
+	at org.apache.maven.DefaultMaven.doExecute(DefaultMaven.java:261) [maven-core-3.9.12.jar:3.9.12]
+	at org.apache.maven.DefaultMaven.doExecute(DefaultMaven.java:173) [maven-core-3.9.12.jar:3.9.12]
+	at org.apache.maven.DefaultMaven.execute(DefaultMaven.java:101) [maven-core-3.9.12.jar:3.9.12]
+	at org.apache.maven.cli.MavenCli.execute(MavenCli.java:919) [maven-embedder-3.9.12.jar:3.9.12]
+	at org.apache.maven.cli.MavenCli.doMain(MavenCli.java:285) [maven-embedder-3.9.12.jar:3.9.12]
+	at org.apache.maven.cli.MavenCli.main(MavenCli.java:207) [maven-embedder-3.9.12.jar:3.9.12]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[?:?]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[?:?]
+	at org.codehaus.plexus.classworlds.launcher.Launcher.launchEnhanced(Launcher.java:255) [plexus-classworlds-2.9.0.jar:2.9.0]
+	at org.codehaus.plexus.classworlds.launcher.Launcher.launch(Launcher.java:201) [plexus-classworlds-2.9.0.jar:2.9.0]
+	at org.codehaus.plexus.classworlds.launcher.Launcher.mainWithExitCode(Launcher.java:361) [plexus-classworlds-2.9.0.jar:2.9.0]
+	at org.codehaus.plexus.classworlds.launcher.Launcher.main(Launcher.java:314) [plexus-classworlds-2.9.0.jar:2.9.0]
+INFO  2026-01-31 18:46:50 [main] RollerContext - 
+--------------------------------------------------------------
+Roller Weblogger startup INCOMPLETE, user interaction required
+--------------------------------------------------------------
+INFO  2026-01-31 18:46:50 [main] RollerContext - Remember Me enabled: false
+WARN  2026-01-31 18:46:50 [main] RollerContext - New passwords are stored in plain text!
+INFO  2026-01-31 18:46:50 [main] RollerContext - Password Encryption Algorithm set to 'noop'
+INFO  2026-01-31 18:46:50 [main] RollerContext - Initializing Velocity
+INFO  2026-01-31 18:46:50 [main] StrutsTilesListener - Starting Struts Tiles 3 integration ...
+INFO  2026-01-31 18:46:51 [main] TilesAccess - Publishing TilesContext for context: org.apache.struts2.tiles.StrutsWildcardServletApplicationContext
+INFO  2026-01-31 18:46:52 [main] StrutsSpringObjectFactory - Initializing Struts-Spring integration...
+INFO  2026-01-31 18:46:52 [main] SpringObjectFactory - Setting autowire strategy to name
+INFO  2026-01-31 18:46:52 [main] StrutsSpringObjectFactory - ... initialized Struts-Spring integration successfully
+WARN  2026-01-31 18:46:52 [main] DefaultExcludedPatternsChecker - Replacing excluded patterns [[(^|\%\{)((#?)(top(\.|\['|\[")|\[\d\]\.)?)(dojo|struts|session|request|response|application|servlet(Request|Response|Context)|parameters|context|_memberAccess)(\.|\[).*, .*(^|\.|\[|\'|"|get)class(\(\.|\[|\'|").*]] with [[^method:.*, ^action:.*]], be aware that this affects all instances and safety of your application!
+WARN  2026-01-31 18:46:52 [main] PackageBasedActionConfigBuilder - The includeJars pattern [false] did not match any jars in the classpath
+INFO  2026-01-31 18:46:53 [main] RequestMappingFilter - Request mapping filter initialized, 1 mappers configured.
+INFO  2026-01-31 18:46:53 [main] RequestMappingFilter - [class org.apache.roller.weblogger.ui.rendering.WeblogRequestMapper]
+INFO  2026-01-31 18:46:53 [main] IPBanFilter - INIT IPBanFilter
+INFO  2026-01-31 18:46:53 [main] WebjarsServlet - The webjars-locator-core library is not present, WebjarsServlet will not try to resolve the version of requested WebJar assets (for the version agnostic way of working)
+INFO  2026-01-31 18:46:53 [main] WebjarsServlet - WebjarsServlet initialization completed
+INFO  2026-01-31 18:46:53 [main] FeedServlet - Initializing FeedServlet
+INFO  2026-01-31 18:46:53 [main] WeblogFeedCache - {size=200, id=cache.weblogfeed, enabled=false, timeout=3600}
+WARN  2026-01-31 18:46:53 [main] WeblogFeedCache - Caching has been DISABLED
+INFO  2026-01-31 18:46:53 [main] SiteWideCache - {size=50, id=cache.sitewide, enabled=false, timeout=1800}
+WARN  2026-01-31 18:46:53 [main] SiteWideCache - Caching has been DISABLED
+INFO  2026-01-31 18:46:53 [main] MediaResourceServlet - Initializing ResourceServlet
+INFO  2026-01-31 18:46:53 [main] PageServlet - Initializing PageServlet
+INFO  2026-01-31 18:46:53 [main] WeblogPageCache - {size=400, id=cache.weblogpage, enabled=false, timeout=3600}
+WARN  2026-01-31 18:46:53 [main] WeblogPageCache - Caching has been DISABLED
+INFO  2026-01-31 18:46:53 [main] PageServlet - Referrer spam check enabled = false
+INFO  2026-01-31 18:46:53 [main] ResourceServlet - Initializing ResourceServlet
+INFO  2026-01-31 18:46:53 [main] SearchServlet - Initializing SearchServlet
+INFO  2026-01-31 18:46:53 [main] CommentServlet - Initializing CommentServlet
+INFO  2026-01-31 18:46:53 [main] CommentValidationManager - Configured 3 CommentValidators
+INFO  2026-01-31 18:46:53 [main] CommentValidationManager - [class org.apache.roller.weblogger.ui.rendering.plugins.comments.BannedwordslistCommentValidator,class org.apache.roller.weblogger.ui.rendering.plugins.comments.ExcessLinksCommentValidator,class org.apache.roller.weblogger.ui.rendering.plugins.comments.ExcessSizeCommentValidator]
+INFO  2026-01-31 18:46:53 [main] CommentServlet - Comment Throttling DISABLED
+INFO  2026-01-31 18:46:53 [main] PlanetFeedServlet - Initializing PlanetRssServlet
+INFO  2026-01-31 18:46:53 [main] PlanetCache - Planet cache = {size=10, id=cache.planet, enabled=false, timeout=1800}
+WARN  2026-01-31 18:46:53 [main] PlanetCache - Caching has been DISABLED
+INFO  2026-01-31 18:46:53 [main] RSDServlet - Initializing RSDServlet
+INFO  2026-01-31 18:46:53 [main] CommentValidationManager - Configured 3 CommentValidators
+INFO  2026-01-31 18:46:53 [main] CommentValidationManager - [class org.apache.roller.weblogger.ui.rendering.plugins.comments.BannedwordslistCommentValidator,class org.apache.roller.weblogger.ui.rendering.plugins.comments.ExcessLinksCommentValidator,class org.apache.roller.weblogger.ui.rendering.plugins.comments.ExcessSizeCommentValidator]
+INFO  2026-01-31 18:46:53 [main] PreviewResourceServlet - Initializing PreviewResourceServlet
+INFO  2026-01-31 18:46:53 [main] PreviewServlet - Initializing PreviewServlet
+WARN  2026-01-31 18:47:20 [qtp1699756582-58] StrutsLocalizedTextProvider - Trying to find text with null key!
+INFO  2026-01-31 18:47:21 [qtp1699756582-66] SaltCache - {size=5000, id=cache.salt, timeout=3600, enabled=true}
+INFO  2026-01-31 18:47:21 [qtp1699756582-66] CacheManager - Cache Manager Initialized.
+INFO  2026-01-31 18:47:21 [qtp1699756582-66] CacheManager - Cache Factory = org.apache.roller.weblogger.util.cache.ExpiringLRUCacheFactoryImpl
+WARN  2026-01-31 18:47:21 [qtp1699756582-80] StrutsLocalizedTextProvider - Trying to find text with null key!
+INFO  2026-01-31 18:47:47 [JettyShutdownThread] TilesAccess - Removing TilesContext for context: org.apache.struts2.tiles.StrutsWildcardServletApplicationContext

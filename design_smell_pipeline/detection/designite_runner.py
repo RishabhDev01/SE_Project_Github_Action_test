@@ -1,0 +1,301 @@
+"""
+DesigniteJava Runner - Integration with DesigniteJava for design smell detection
+
+This module handles:
+1. Running DesigniteJava on the source code
+2. Parsing the output CSV files
+3. Extracting design and implementation smells
+"""
+
+import subprocess
+import os
+import csv
+import logging
+import requests
+from pathlib import Path
+from typing import Dict, List, Optional
+from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class DesignSmell:
+    """Represents a detected design smell"""
+    project: str
+    package: str
+    type_name: str
+    smell_type: str
+    cause: str
+    file_path: Optional[str] = None
+    severity: str = "medium"
+    
+
+@dataclass
+class ImplementationSmell:
+    """Represents a detected implementation smell"""
+    project: str
+    package: str
+    type_name: str
+    method_name: str
+    smell_type: str
+    cause: str
+    file_path: Optional[str] = None
+    severity: str = "medium"
+
+
+class DesigniteRunner:
+    """
+    Runner for DesigniteJava - a design quality assessment tool for Java projects.
+    
+    DesigniteJava detects:
+    - Design Smells: God Class, Feature Envy, Data Class, etc.
+    - Implementation Smells: Long Method, Complex Conditional, etc.
+    - Architecture Smells: Cyclic Dependencies, etc.
+    """
+    
+    # Mapping of smell types to severity levels
+    SMELL_SEVERITY = {
+        # High severity - significant design issues
+        "God Class": "high",
+        "Blob Class": "high",
+        "Complex Method": "high",
+        "Long Method": "high",
+        
+        # Medium severity - notable issues
+        "Feature Envy": "medium",
+        "Data Class": "medium",
+        "Long Parameter List": "medium",
+        "Duplicate Abstraction": "medium",
+        
+        # Lower severity - minor issues
+        "Magic Number": "low",
+        "Empty Catch Clause": "low",
+        "Missing Default": "low",
+    }
+    
+    def __init__(self, config: Dict):
+        """
+        Initialize the DesigniteJava runner.
+        
+        Args:
+            config: Configuration dictionary containing paths and settings
+        """
+        self.jar_path = Path(config.get('detection', {}).get('designite', {}).get('jar_path', './tools/DesigniteJava.jar'))
+        self.source_path = Path(config.get('detection', {}).get('source_path', './app/src/main/java'))
+        self.output_path = Path(config.get('detection', {}).get('output_path', './output/smells'))
+        self.excluded_patterns = config.get('detection', {}).get('excluded_patterns', [])
+        
+    def ensure_designite_available(self) -> bool:
+        """
+        Ensure DesigniteJava JAR is available, download if necessary.
+        
+        Returns:
+            True if JAR is available, False otherwise
+        """
+        if self.jar_path.exists():
+            logger.info(f"DesigniteJava found at {self.jar_path}")
+            return True
+            
+        logger.warning(f"DesigniteJava not found at {self.jar_path}")
+        
+        # Create tools directory
+        self.jar_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Note: DesigniteJava requires a license for full features
+        # For CI/CD, you may need to purchase or use the trial version
+        logger.info("Please download DesigniteJava manually from https://www.designite-tools.com/designitejava/")
+        logger.info(f"Place the JAR file at: {self.jar_path}")
+        
+        return False
+    
+    def run_analysis(self) -> bool:
+        """
+        Run DesigniteJava analysis on the source code.
+        
+        Returns:
+            True if analysis completed successfully, False otherwise
+        """
+        if not self.ensure_designite_available():
+            logger.error("DesigniteJava is not available")
+            return False
+            
+        # Create output directory
+        self.output_path.mkdir(parents=True, exist_ok=True)
+        
+        # Build the command
+        cmd = [
+            "java", "-jar", str(self.jar_path),
+            "-i", str(self.source_path),
+            "-o", str(self.output_path)
+        ]
+        
+        logger.info(f"Running DesigniteJava: {' '.join(cmd)}")
+        
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=600  # 10 minute timeout
+            )
+            
+            if result.returncode != 0:
+                logger.error(f"DesigniteJava failed: {result.stderr}")
+                return False
+                
+            logger.info("DesigniteJava analysis completed successfully")
+            return True
+            
+        except subprocess.TimeoutExpired:
+            logger.error("DesigniteJava timed out after 10 minutes")
+            return False
+        except FileNotFoundError:
+            logger.error("Java not found. Please ensure Java is installed and in PATH")
+            return False
+        except Exception as e:
+            logger.error(f"Error running DesigniteJava: {e}")
+            return False
+    
+    def parse_design_smells(self) -> List[DesignSmell]:
+        """
+        Parse the DesignSmells.csv output file.
+        
+        Returns:
+            List of DesignSmell objects
+        """
+        csv_path = self.output_path / "DesignSmells.csv"
+        smells = []
+        
+        if not csv_path.exists():
+            logger.warning(f"Design smells file not found: {csv_path}")
+            return smells
+            
+        try:
+            with open(csv_path, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    smell = DesignSmell(
+                        project=row.get('Project Name', ''),
+                        package=row.get('Package Name', ''),
+                        type_name=row.get('Type Name', ''),
+                        smell_type=row.get('Design Smell', ''),
+                        cause=row.get('Cause of the Smell', ''),
+                        severity=self.SMELL_SEVERITY.get(row.get('Design Smell', ''), 'medium')
+                    )
+                    
+                    # Construct file path from package and type
+                    smell.file_path = self._construct_file_path(smell.package, smell.type_name)
+                    smells.append(smell)
+                    
+            logger.info(f"Parsed {len(smells)} design smells")
+            
+        except Exception as e:
+            logger.error(f"Error parsing design smells: {e}")
+            
+        return smells
+    
+    def parse_implementation_smells(self) -> List[ImplementationSmell]:
+        """
+        Parse the ImplementationSmells.csv output file.
+        
+        Returns:
+            List of ImplementationSmell objects
+        """
+        csv_path = self.output_path / "ImplementationSmells.csv"
+        smells = []
+        
+        if not csv_path.exists():
+            logger.warning(f"Implementation smells file not found: {csv_path}")
+            return smells
+            
+        try:
+            with open(csv_path, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    smell = ImplementationSmell(
+                        project=row.get('Project Name', ''),
+                        package=row.get('Package Name', ''),
+                        type_name=row.get('Type Name', ''),
+                        method_name=row.get('Method Name', ''),
+                        smell_type=row.get('Implementation Smell', ''),
+                        cause=row.get('Cause of the Smell', ''),
+                        severity=self.SMELL_SEVERITY.get(row.get('Implementation Smell', ''), 'medium')
+                    )
+                    
+                    smell.file_path = self._construct_file_path(smell.package, smell.type_name)
+                    smells.append(smell)
+                    
+            logger.info(f"Parsed {len(smells)} implementation smells")
+            
+        except Exception as e:
+            logger.error(f"Error parsing implementation smells: {e}")
+            
+        return smells
+    
+    def _construct_file_path(self, package: str, type_name: str) -> str:
+        """
+        Construct the file path from package and type name.
+        
+        Args:
+            package: Java package name (e.g., 'org.apache.roller.weblogger')
+            type_name: Class name (e.g., 'UserManager')
+            
+        Returns:
+            Relative file path (e.g., 'org/apache/roller/weblogger/UserManager.java')
+        """
+        package_path = package.replace('.', '/')
+        return f"{package_path}/{type_name}.java"
+    
+    def get_all_smells(self) -> Dict:
+        """
+        Get all detected smells (design + implementation).
+        
+        Returns:
+            Dictionary containing both design and implementation smells
+        """
+        return {
+            'design_smells': self.parse_design_smells(),
+            'implementation_smells': self.parse_implementation_smells()
+        }
+    
+    def get_smells_by_file(self) -> Dict[str, List]:
+        """
+        Group all smells by file path for easier processing.
+        
+        Returns:
+            Dictionary mapping file paths to lists of smells
+        """
+        all_smells = self.get_all_smells()
+        smells_by_file = {}
+        
+        for smell in all_smells['design_smells']:
+            if smell.file_path:
+                if smell.file_path not in smells_by_file:
+                    smells_by_file[smell.file_path] = []
+                smells_by_file[smell.file_path].append(smell)
+                
+        for smell in all_smells['implementation_smells']:
+            if smell.file_path:
+                if smell.file_path not in smells_by_file:
+                    smells_by_file[smell.file_path] = []
+                smells_by_file[smell.file_path].append(smell)
+                
+        return smells_by_file
+
+
+if __name__ == "__main__":
+    # Test the runner
+    import yaml
+    
+    with open("config/config.yaml", 'r') as f:
+        config = yaml.safe_load(f)
+    
+    runner = DesigniteRunner(config)
+    
+    if runner.run_analysis():
+        smells = runner.get_smells_by_file()
+        for file_path, file_smells in smells.items():
+            print(f"\n{file_path}:")
+            for smell in file_smells:
+                print(f"  - {smell.smell_type}: {smell.cause}")

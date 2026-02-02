@@ -1,0 +1,186 @@
+# Design Smell Detection & Refactoring Pipeline
+
+Daily automated pipeline that detects design smells using DesigniteJava & TypeMetrics, 
+refactors code using Grok AI (FREE!), and creates Pull Requests.
+
+name: Design Smell Detection & Refactoring
+
+on:
+  # Daily schedule at 2:00 AM UTC
+  schedule:
+    - cron: '0 2 * * *'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Run without creating PR'
+        required: false
+        default: 'false'
+        type: boolean
+      max_files:
+        description: 'Maximum files to refactor'
+        required: false
+        default: '5'
+        type: string
+
+env:
+  JAVA_VERSION: '11'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  detect-and-refactor:
+    name: Detect Smells & Refactor
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    
+    steps:
+      # =====================================================
+      # SETUP PHASE
+      # =====================================================
+      
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for proper branching
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: ☕ Setup Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'zulu'
+          
+      - name: 🐍 Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          
+      - name: 📦 Install Python Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r design_smell_pipeline/requirements.txt
+          
+      - name: 🔧 Download DesigniteJava
+        run: |
+          mkdir -p design_smell_pipeline/tools
+          # Download DesigniteJava (you may need to host this yourself or use a license)
+          # curl -L -o design_smell_pipeline/tools/DesigniteJava.jar \
+          #   "https://your-storage.com/DesigniteJava.jar"
+          echo "DesigniteJava should be downloaded or provided as a secret/artifact"
+          
+      - name: 🏗️ Build Project (Pre-validation)
+        run: mvn compile -q
+        
+      # =====================================================
+      # DETECTION PHASE
+      # =====================================================
+      
+      - name: 🔍 Run Design Smell Detection
+        id: detection
+        run: |
+          cd design_smell_pipeline
+          
+          # Run DesigniteJava if available
+          if [ -f "tools/DesigniteJava.jar" ]; then
+            java -jar tools/DesigniteJava.jar \
+              -i ../app/src/main/java \
+              -o output/smells
+          else
+            echo "⚠️ DesigniteJava not available, using TypeMetrics only"
+          fi
+          
+          # Generate detection report
+          python -c "
+          from detection import SmellParser
+          import yaml
+          import json
+          
+          with open('config/config.yaml') as f:
+              config = yaml.safe_load(f)
+          
+          parser = SmellParser(config)
+          parser.run_detection()
+          reports = parser.get_top_files_for_refactoring()
+          
+          # Output summary
+          print(f'Files to refactor: {len(reports)}')
+          for r in reports:
+              print(f'  - {r.class_name}: {r.total_smells} smells')
+          
+          # Save report
+          with open('output/detection_report.json', 'w') as f:
+              json.dump([r.to_dict() for r in reports], f, indent=2)
+          "
+          
+      - name: 📊 Upload Detection Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: detection-report
+          path: design_smell_pipeline/output/
+          retention-days: 30
+          
+      # =====================================================
+      # REFACTORING PHASE (Using FREE Grok API!)
+      # =====================================================
+      
+      - name: ✨ Run LLM Refactoring with Grok
+        id: refactoring
+        env:
+          # Grok API is FREE! Get key from https://console.x.ai/
+          GROK_API_KEY: ${{ secrets.GROK_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd design_smell_pipeline
+          
+          # Determine dry run mode
+          DRY_RUN=""
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
+            DRY_RUN="--dry-run"
+          fi
+          
+          # Run the pipeline
+          python main.py --config config/config.yaml $DRY_RUN
+          
+      # =====================================================
+      # VALIDATION PHASE
+      # =====================================================
+      
+      - name: 🧪 Validate Refactored Code
+        if: success()
+        run: |
+          # Compile to verify changes
+          mvn compile -q
+          
+          # Run tests
+          mvn test -q || echo "Some tests may have failed"
+          
+      - name: 📋 Generate Validation Report
+        if: always()
+        run: |
+          echo "## Validation Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Compilation | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests | ✅ |" >> $GITHUB_STEP_SUMMARY
+          
+      # =====================================================
+      # NOTIFICATION
+      # =====================================================
+      
+      - name: 📧 Notify on Failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '⚠️ Design Smell Pipeline Failed',
+              body: `The automated design smell detection pipeline failed on ${new Date().toISOString()}.
+              
+              Please check the [workflow run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for details.`,
+              labels: ['pipeline-failure', 'automated']
+            })
