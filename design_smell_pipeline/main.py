@@ -301,24 +301,45 @@ class RefactoringPipeline:
                 else:
                     return None
                 
+        # Calculate ORIGINAL metrics BEFORE writing changes
+        from detection.typemetrics_runner import TypeMetricsRunner
+        metrics_runner = TypeMetricsRunner(self.config)
+        original_metrics = metrics_runner.analyze_file(file_path)
+        
         # Write changes
         if not self.dry_run:
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(final_code)
                 
-        # Calculate new metrics
-        from detection.typemetrics_runner import TypeMetricsRunner
-        metrics_runner = TypeMetricsRunner(self.config)
+        # Calculate NEW metrics AFTER writing changes
         new_metrics = metrics_runner.analyze_file(file_path)
+        
+        # Validate metrics improvement - reject if complexity increased significantly
+        if original_metrics and new_metrics:
+            orig_cc = original_metrics.cyclomatic_complexity
+            new_cc = new_metrics.cyclomatic_complexity
+            orig_loc = original_metrics.loc
+            new_loc = new_metrics.loc
+            
+            # Reject if complexity increased by more than 10%
+            if new_cc > orig_cc * 1.1 and new_cc > orig_cc + 5:
+                logger.warning(f"  Rejecting refactoring: complexity increased from {orig_cc} to {new_cc}")
+                # Restore original file
+                if not self.dry_run and hasattr(self, '_original_content_backup'):
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        f.write(self._original_content_backup)
+                return None
+                
+            logger.info(f"  Metrics: CC {orig_cc}→{new_cc}, LOC {orig_loc}→{new_loc}")
         
         return RefactoringResult(
             file_path=str(file_path),
             class_name=report.class_name,
             smells_fixed=[{'type': s['type'], 'cause': s['cause'], 'severity': 'medium'} for s in smells],
             original_metrics={
-                'loc': report.metrics.loc if report.metrics else 0,
-                'cyclomatic_complexity': report.metrics.cyclomatic_complexity if report.metrics else 0,
-                'methods_count': report.metrics.methods_count if report.metrics else 0
+                'loc': original_metrics.loc if original_metrics else (report.metrics.loc if report.metrics else 0),
+                'cyclomatic_complexity': original_metrics.cyclomatic_complexity if original_metrics else (report.metrics.cyclomatic_complexity if report.metrics else 0),
+                'methods_count': original_metrics.methods_count if original_metrics else (report.metrics.methods_count if report.metrics else 0)
             },
             new_metrics={
                 'loc': new_metrics.loc if new_metrics else 0,

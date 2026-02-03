@@ -280,7 +280,7 @@ class TypeMetricsRunner:
         Get metrics for a specific file.
         
         Args:
-            file_path: Path to the file
+            file_path: Path to the file (can be partial path or class name)
             
         Returns:
             ClassMetrics or None
@@ -291,10 +291,28 @@ class TypeMetricsRunner:
         # Try exact match first
         if file_path in self.metrics_cache:
             return self.metrics_cache[file_path]
-            
+        
+        # Normalize the file path for comparison
+        normalized_path = file_path.replace('\\', '/').lower()
+        
         # Try partial match
         for cached_path, metrics in self.metrics_cache.items():
-            if file_path in cached_path or cached_path.endswith(file_path):
+            cached_normalized = cached_path.replace('\\', '/').lower()
+            
+            # Path contains match
+            if normalized_path in cached_normalized or cached_normalized.endswith(normalized_path):
+                return metrics
+            
+            # Match by class name
+            class_name = metrics.class_name.lower()
+            if class_name in normalized_path or normalized_path.endswith(class_name) or \
+               normalized_path.endswith(class_name + '.java'):
+                return metrics
+                
+            # Match by just the filename
+            if normalized_path.endswith(f"/{class_name}.java") or \
+               normalized_path == f"{class_name}.java" or \
+               file_path.lower() == class_name:
                 return metrics
                 
         return None
