@@ -81,9 +81,22 @@ class DesigniteRunner:
         Args:
             config: Configuration dictionary containing paths and settings
         """
-        self.jar_path = Path(config.get('detection', {}).get('designite', {}).get('jar_path', './tools/DesigniteJava.jar'))
-        self.source_path = Path(config.get('detection', {}).get('source_path', './app/src/main/java'))
-        self.output_path = Path(config.get('detection', {}).get('output_path', './output/smells'))
+        # Determine project root
+        github_workspace = os.environ.get('GITHUB_WORKSPACE')
+        if github_workspace:
+            project_root = Path(github_workspace)
+        else:
+            # Find project root by traversing up from this file
+            project_root = Path(__file__).parent.parent.parent
+            
+        # Resolve all paths to absolute
+        jar_path = config.get('detection', {}).get('designite', {}).get('jar_path', './tools/DesigniteJava.jar')
+        source_path = config.get('detection', {}).get('source_path', './app/src/main/java')
+        output_path = config.get('detection', {}).get('output_path', './output/smells')
+        
+        self.jar_path = (project_root / jar_path).resolve()
+        self.source_path = (project_root / source_path).resolve()
+        self.output_path = (project_root / output_path).resolve()
         self.excluded_patterns = config.get('detection', {}).get('excluded_patterns', [])
         
     def ensure_designite_available(self) -> bool:
