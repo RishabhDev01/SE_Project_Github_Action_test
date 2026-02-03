@@ -286,6 +286,46 @@ class DesigniteRunner:
                 smells_by_file[smell.file_path].append(smell)
                 
         return smells_by_file
+    
+    def get_smell_count_for_class(self, class_name: str) -> int:
+        """
+        Get the total smell count for a specific class.
+        
+        Args:
+            class_name: Name of the class to check
+            
+        Returns:
+            Number of smells detected for this class
+        """
+        all_smells = self.get_all_smells()
+        count = 0
+        
+        for smell in all_smells['design_smells']:
+            if smell.type_name.lower() == class_name.lower():
+                count += 1
+                
+        for smell in all_smells['implementation_smells']:
+            if smell.type_name.lower() == class_name.lower():
+                count += 1
+                
+        return count
+    
+    def run_and_get_smell_count(self, class_name: str) -> Optional[int]:
+        """
+        Run DesigniteJava analysis and return smell count for a specific class.
+        This is used for post-refactoring validation.
+        
+        Args:
+            class_name: Name of the class to check
+            
+        Returns:
+            Number of smells detected, or None if analysis failed
+        """
+        if not self.run_analysis():
+            logger.warning("DesigniteJava analysis failed, skipping smell count validation")
+            return None
+            
+        return self.get_smell_count_for_class(class_name)
 
 
 if __name__ == "__main__":

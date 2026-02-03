@@ -314,23 +314,35 @@ class RefactoringPipeline:
         # Calculate NEW metrics AFTER writing changes
         new_metrics = metrics_runner.analyze_file(file_path)
         
-        # Validate metrics improvement - reject if complexity increased significantly
+        # Log metrics comparison (shown in PR for user review)
         if original_metrics and new_metrics:
             orig_cc = original_metrics.cyclomatic_complexity
             new_cc = new_metrics.cyclomatic_complexity
             orig_loc = original_metrics.loc
             new_loc = new_metrics.loc
             
-            # Reject if complexity increased by more than 10%
-            if new_cc > orig_cc * 1.1 and new_cc > orig_cc + 5:
-                logger.warning(f"  Rejecting refactoring: complexity increased from {orig_cc} to {new_cc}")
-                # Restore original file
-                if not self.dry_run and hasattr(self, '_original_content_backup'):
-                    with open(file_path, 'w', encoding='utf-8') as f:
-                        f.write(self._original_content_backup)
-                return None
-                
-            logger.info(f"  Metrics: CC {orig_cc}→{new_cc}, LOC {orig_loc}→{new_loc}")
+            # Log the metrics change
+            cc_change = new_cc - orig_cc
+            loc_change = new_loc - orig_loc
+            
+            # Log metrics comparison
+            cc_indicator = "🔻" if cc_change < 0 else ("=" if cc_change == 0 else "🔺")
+            loc_indicator = "🔻" if loc_change < 0 else ("=" if loc_change == 0 else "🔺")
+            logger.info(f"  Metrics: CC {orig_cc}→{new_cc} {cc_indicator}, LOC {orig_loc}→{new_loc} {loc_indicator}")
+        
+        # Log smell count comparison (shown in PR for user review)
+        original_smell_count = report.total_smells
+        if original_smell_count > 0 and not self.dry_run:
+            from detection.designite_runner import DesigniteRunner
+            designite_runner = DesigniteRunner(self.config)
+            
+            # Run DesigniteJava and get new smell count
+            new_smell_count = designite_runner.run_and_get_smell_count(report.class_name)
+            
+            if new_smell_count is not None:
+                smell_change = new_smell_count - original_smell_count
+                smell_indicator = "🔻" if smell_change < 0 else ("=" if smell_change == 0 else "🔺")
+                logger.info(f"  Smells: {original_smell_count}→{new_smell_count} {smell_indicator} ({smell_change:+d})")
         
         return RefactoringResult(
             file_path=str(file_path),
