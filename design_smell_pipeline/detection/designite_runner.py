@@ -311,7 +311,7 @@ class DesigniteRunner:
             Dictionary mapping class names to their metrics
         """
         current_path = getattr(self, '_current_output_path', self.output_path)
-        csv_path = current_path / "TypeMetrics.csv"
+        csv_path = current_path / "typeMetrics.csv"
         metrics = {}
         
         if not csv_path.exists():
