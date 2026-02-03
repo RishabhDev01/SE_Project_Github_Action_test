@@ -149,7 +149,8 @@ class DesigniteRunner:
             )
             
             if result.returncode != 0:
-                logger.error(f"DesigniteJava failed: {result.stderr}")
+                error_msg = result.stderr or result.stdout or "No error output"
+                logger.error(f"DesigniteJava failed (exit code {result.returncode}): {error_msg}")
                 return False
                 
             logger.info(f"DesigniteJava analysis completed successfully (output: {output_path})")
@@ -180,7 +181,8 @@ class DesigniteRunner:
             List of DesignSmell objects
         """
         # DesigniteJava uses 'designCodeSmells.csv' not 'DesignSmells.csv'
-        csv_path = self.output_path / "designCodeSmells.csv"
+        current_path = getattr(self, '_current_output_path', self.output_path)
+        csv_path = current_path / "designCodeSmells.csv"
         smells = []
         
         if not csv_path.exists():
@@ -220,7 +222,8 @@ class DesigniteRunner:
             List of ImplementationSmell objects
         """
         # DesigniteJava uses 'implementationCodeSmells.csv' not 'ImplementationSmells.csv'
-        csv_path = self.output_path / "implementationCodeSmells.csv"
+        current_path = getattr(self, '_current_output_path', self.output_path)
+        csv_path = current_path / "implementationCodeSmells.csv"
         smells = []
         
         if not csv_path.exists():
