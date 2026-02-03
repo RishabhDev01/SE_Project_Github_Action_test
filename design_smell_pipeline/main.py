@@ -110,8 +110,12 @@ class RefactoringPipeline:
             if not self.results:
                 logger.info("No successful refactoring results")
                 return True
+            
+            # Phase 4: Post-Refactoring Detection
+            logger.info("\n📍 Phase 4: Post-Refactoring Detection")
+            self._run_post_refactoring_detection()
                 
-            # Phase 4: Create PR
+            # Phase 5: Create PR
             logger.info("\n📍 Phase 4: Creating Pull Request")
             if not self.dry_run:
                 pr_url = self._create_pull_request()
@@ -137,7 +141,44 @@ class RefactoringPipeline:
     def _run_detection(self) -> bool:
         """Run the detection phase."""
         return self.smell_parser.run_detection()
-        
+    
+    def _run_post_refactoring_detection(self) -> None:
+        """
+        Run DesigniteJava detection after refactoring to generate comparison report.
+        Saves output to './output/smells_after' for before/after comparison.
+        """
+        try:
+            from detection.designite_runner import DesigniteRunner
+            runner = DesigniteRunner(self.config)
+            
+            logger.info("Running DesigniteJava post-refactoring analysis...")
+            if runner.run_analysis(output_suffix="_after"):
+                # Get smell counts from the new report
+                smells_by_class = {}
+                all_smells = runner.get_all_smells()
+                
+                for smell in all_smells['design_smells']:
+                    class_name = smell.type_name
+                    smells_by_class[class_name] = smells_by_class.get(class_name, 0) + 1
+                    
+                for smell in all_smells['implementation_smells']:
+                    class_name = smell.type_name
+                    smells_by_class[class_name] = smells_by_class.get(class_name, 0) + 1
+                
+                # Log comparison for refactored files
+                logger.info("Post-refactoring smell counts:")
+                for result in self.results:
+                    class_name = result.class_name
+                    new_count = smells_by_class.get(class_name, 0)
+                    logger.info(f"  {class_name}: {new_count} smells")
+                    
+                logger.info("✅ Post-refactoring detection complete. Reports saved to output/smells_after/")
+            else:
+                logger.warning("Post-refactoring detection failed")
+                
+        except Exception as e:
+            logger.warning(f"Post-refactoring detection error: {e}")
+            
     def _analyze_smells(self) -> List[SmellReport]:
         """Analyze and prioritize detected smells."""
         self.smell_parser.aggregate_smells()

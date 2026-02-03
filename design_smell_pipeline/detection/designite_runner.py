@@ -109,9 +109,12 @@ class DesigniteRunner:
         
         return False
     
-    def run_analysis(self) -> bool:
+    def run_analysis(self, output_suffix: str = "") -> bool:
         """
         Run DesigniteJava analysis on the source code.
+        
+        Args:
+            output_suffix: Optional suffix for output directory (e.g., '_after' for post-refactoring)
         
         Returns:
             True if analysis completed successfully, False otherwise
@@ -119,15 +122,20 @@ class DesigniteRunner:
         if not self.ensure_designite_available():
             logger.error("DesigniteJava is not available")
             return False
+        
+        # Use custom output path if suffix provided
+        output_path = self.output_path
+        if output_suffix:
+            output_path = Path(str(self.output_path) + output_suffix)
             
         # Create output directory
-        self.output_path.mkdir(parents=True, exist_ok=True)
+        output_path.mkdir(parents=True, exist_ok=True)
         
         # Build the command
         cmd = [
             "java", "-jar", str(self.jar_path),
             "-i", str(self.source_path),
-            "-o", str(self.output_path)
+            "-o", str(output_path)
         ]
         
         logger.info(f"Running DesigniteJava: {' '.join(cmd)}")
@@ -144,7 +152,14 @@ class DesigniteRunner:
                 logger.error(f"DesigniteJava failed: {result.stderr}")
                 return False
                 
-            logger.info("DesigniteJava analysis completed successfully")
+            logger.info(f"DesigniteJava analysis completed successfully (output: {output_path})")
+            
+            # Update output path for parsing if suffix was used
+            if output_suffix:
+                self._current_output_path = output_path
+            else:
+                self._current_output_path = self.output_path
+                
             return True
             
         except subprocess.TimeoutExpired:
