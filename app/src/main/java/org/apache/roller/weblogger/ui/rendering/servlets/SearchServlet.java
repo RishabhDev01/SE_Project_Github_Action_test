@@ -61,7 +61,7 @@ public class SearchServlet extends HttpServlet {
     private static final Log log = LogFactory.getLog(SearchServlet.class);
 
     // Development theme reloading
-    Boolean themeReload = false;
+    private Boolean themeReload;
 
     /**
      * Init method for this servlet
@@ -186,7 +186,7 @@ public class SearchServlet extends HttpServlet {
             ModelLoader.loadModels(searchModels, model, initData, true);
 
             // Load special models for site-wide blog
-            if (WebloggerRuntimeConfig.isSiteWideWeblog(weblog.getHandle())) {
+            if (WebloggerRuntimeConfig.isSiteWideWeblog(searchRequest.getWeblogHandle())) {
                 String siteModels = WebloggerConfig.getProperty("rendering.siteModels");
                 ModelLoader.loadModels(siteModels, model, initData, true);
             }

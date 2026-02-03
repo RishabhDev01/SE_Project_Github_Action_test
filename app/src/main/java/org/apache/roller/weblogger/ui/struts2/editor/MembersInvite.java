@@ -32,7 +32,6 @@ import org.apache.roller.weblogger.ui.struts2.util.UIAction;
 import org.apache.roller.weblogger.util.MailUtil;
 import org.apache.struts2.convention.annotation.AllowedMethods;
 
-
 /**
  * Allows website admin to invite new members to website.
  *
@@ -40,16 +39,15 @@ import org.apache.struts2.convention.annotation.AllowedMethods;
  */
 // TODO: make this work @AllowedMethods({"execute","save","cancel"})
 public class MembersInvite extends UIAction {
-    
+
     private static Log log = LogFactory.getLog(MembersInvite.class);
-    
+
     // user being invited
     private String userName = null;
-    
+
     // permissions being given to user
     private String permissionString = null;
-    
-    
+
     public MembersInvite() {
         this.actionName = "invite";
         this.desiredMenu = "editor";
@@ -58,101 +56,32 @@ public class MembersInvite extends UIAction {
 
     @Override
     public String execute() {
-        
-        // if group blogging is disabled then you can't change permissions
-        if (!WebloggerConfig.getBooleanProperty("groupblogging.enabled")) {
+        if (!isGroupBloggingEnabled()) {
             addError("inviteMember.disabled");
             return SUCCESS;
         }
-        
         log.debug("Showing weblog invitation form");
-        
         return INPUT;
     }
-    
-    
+
     /**
      * Save the new invitation and notify the user.
      */
     public String save() {
-        
-        // if group blogging is disabled then you can't change permissions
-        if (!WebloggerConfig.getBooleanProperty("groupblogging.enabled")) {
+        if (!isGroupBloggingEnabled()) {
             addError("inviteMember.disabled");
             return SUCCESS;
         }
-        
         log.debug("Attempting to process weblog invitation");
-        
-        UserManager umgr = WebloggerFactory.getWeblogger().getUserManager();
-        
-        // user being invited
-        User user = null;
         try {
-            user = umgr.getUserByUserName(getUserName());
-            if (user == null) {
-                addError("inviteMember.error.userNotFound");
-            }
-        } catch(WebloggerException ex) {
-            log.error("Error looking up user by id - "+getUserName(), ex);
-            addError("Error looking up invitee");
+            processInvitation();
+        } catch (WebloggerException e) {
+            log.error("Error processing invitation", e);
+            addError("Error creating user invitation - check Roller logs");
         }
-        
-        // if we already have an error then bail now
-        if(hasActionErrors()) {
-            return INPUT;
-        }
-        
-        // check for existing permissions or invitation
-        try {
-            WeblogPermission perm = umgr.getWeblogPermissionIncludingPending(getActionWeblog(), user);
-
-            if (perm != null && perm.isPending()) {
-                addError("inviteMember.error.userAlreadyInvited");
-            } else if (perm != null) {
-                addError("inviteMember.error.userAlreadyMember");
-            }
-            
-        } catch (WebloggerException ex) {
-            log.error("Error looking up permissions for weblog - "+getActionWeblog().getHandle(), ex);
-            addError("Error checking existing permissions");
-        }
-        
-        // if no errors then send the invitation
-        if(!hasActionErrors()) {
-            try {
-                umgr.grantWeblogPermissionPending(getActionWeblog(), user,
-                        Collections.singletonList(getPermissionString()));
-                WebloggerFactory.getWeblogger().flush();
-
-                addMessage("inviteMember.userInvited");
-
-                if (MailUtil.isMailConfigured()) {
-                    try {
-                        MailUtil.sendWeblogInvitation(getActionWeblog(), user);
-                    } catch (WebloggerException e) {
-                        // TODO: this should be an error except that struts2 misbehaves
-                        // when we chain this action to the next one thinking that an error
-                        // means that validation broke during the chain
-                        addMessage("error.untranslated", e.getMessage());
-                    }
-                }
-
-                log.debug("Invitation successfully recorded");
-
-                return SUCCESS;
-
-            } catch (Exception ex) {
-                log.error("Error creating user invitation", ex);
-                addError("Error creating user invitation - check Roller logs");
-            }
-        }
-        
-        log.debug("Invitation had errors, giving user another chance");
-        
-        return INPUT;
+        return hasActionErrors() ? INPUT : SUCCESS;
     }
-    
+
     /**
      * Cancel.
      * 
@@ -178,5 +107,68 @@ public class MembersInvite extends UIAction {
     public void setPermissionString(String permission) {
         this.permissionString = permission;
     }
-    
+
+    private boolean isGroupBloggingEnabled() {
+        return WebloggerConfig.getBooleanProperty("groupblogging.enabled");
+    }
+
+    private void processInvitation() throws WebloggerException {
+        UserManager umgr = WebloggerFactory.getWeblogger().getUserManager();
+        User user = getUser(umgr);
+        if (user == null) {
+            addError("inviteMember.error.userNotFound");
+            return;
+        }
+        if (hasExistingPermission(umgr, user)) {
+            return;
+        }
+        grantPermission(umgr, user);
+        sendInvitation();
+    }
+
+    private User getUser(UserManager umgr) {
+        try {
+            return umgr.getUserByUserName(getUserName());
+        } catch (WebloggerException e) {
+            log.error("Error looking up user by id - " + getUserName(), e);
+            addError("Error looking up invitee");
+            return null;
+        }
+    }
+
+    private boolean hasExistingPermission(UserManager umgr, User user) {
+        try {
+            WeblogPermission perm = umgr.getWeblogPermissionIncludingPending(getActionWeblog(), user);
+            if (perm != null && perm.isPending()) {
+                addError("inviteMember.error.userAlreadyInvited");
+            } else if (perm != null) {
+                addError("inviteMember.error.userAlreadyMember");
+            }
+            return hasActionErrors();
+        } catch (WebloggerException e) {
+            log.error("Error looking up permissions for weblog - " + getActionWeblog().getHandle(), e);
+            addError("Error checking existing permissions");
+            return true;
+        }
+    }
+
+    private void grantPermission(UserManager umgr, User user) throws WebloggerException {
+        umgr.grantWeblogPermissionPending(getActionWeblog(), user, Collections.singletonList(getPermissionString()));
+        WebloggerFactory.getWeblogger().flush();
+        addMessage("inviteMember.userInvited");
+    }
+
+    private void sendInvitation() {
+        if (MailUtil.isMailConfigured()) {
+            try {
+                MailUtil.sendWeblogInvitation(getActionWeblog(), getUser(WebloggerFactory.getWeblogger().getUserManager()));
+            } catch (WebloggerException e) {
+                // TODO: this should be an error except that struts2 misbehaves
+                // when we chain this action to the next one thinking that an error
+                // means that validation broke during the chain
+                addMessage("error.untranslated", e.getMessage());
+            }
+        }
+        log.debug("Invitation successfully recorded");
+    }
 }
