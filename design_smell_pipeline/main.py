@@ -342,25 +342,35 @@ class RefactoringPipeline:
                 else:
                     return None
                 
-        # Calculate ORIGINAL metrics BEFORE writing changes
-        from detection.typemetrics_runner import TypeMetricsRunner
-        metrics_runner = TypeMetricsRunner(self.config)
-        original_metrics = metrics_runner.analyze_file(file_path)
+        # Get ORIGINAL metrics from DesigniteJava BEFORE writing changes
+        from detection.designite_runner import DesigniteRunner
+        designite_runner = DesigniteRunner(self.config)
+        
+        # Store original metrics from the initial detection phase
+        # The initial DesigniteJava run was already done in Phase 1, so we read from existing output
+        original_metrics = designite_runner.get_metrics_for_class(report.class_name)
+        original_smell_count = report.total_smells
         
         # Write changes
         if not self.dry_run:
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(final_code)
                 
-        # Calculate NEW metrics AFTER writing changes
-        new_metrics = metrics_runner.analyze_file(file_path)
+        # Run DesigniteJava AFTER writing changes to get new metrics
+        new_metrics = None
+        new_smell_count = None
+        if not self.dry_run:
+            logger.info("  Running DesigniteJava for post-refactoring metrics...")
+            if designite_runner.run_analysis(output_suffix="_temp"):
+                new_metrics = designite_runner.get_metrics_for_class(report.class_name)
+                new_smell_count = designite_runner.get_smell_count_for_class(report.class_name)
         
-        # Log metrics comparison (shown in PR for user review)
+        # Log metrics comparison (from DesigniteJava)
         if original_metrics and new_metrics:
-            orig_cc = original_metrics.cyclomatic_complexity
-            new_cc = new_metrics.cyclomatic_complexity
-            orig_loc = original_metrics.loc
-            new_loc = new_metrics.loc
+            orig_cc = original_metrics.get('cyclomatic_complexity', 0)
+            new_cc = new_metrics.get('cyclomatic_complexity', 0)
+            orig_loc = original_metrics.get('loc', 0)
+            new_loc = new_metrics.get('loc', 0)
             
             # Log the metrics change
             cc_change = new_cc - orig_cc
@@ -369,35 +379,27 @@ class RefactoringPipeline:
             # Log metrics comparison
             cc_indicator = "🔻" if cc_change < 0 else ("=" if cc_change == 0 else "🔺")
             loc_indicator = "🔻" if loc_change < 0 else ("=" if loc_change == 0 else "🔺")
-            logger.info(f"  Metrics: CC {orig_cc}→{new_cc} {cc_indicator}, LOC {orig_loc}→{new_loc} {loc_indicator}")
+            logger.info(f"  DesigniteJava Metrics: CC {orig_cc}→{new_cc} {cc_indicator}, LOC {orig_loc}→{new_loc} {loc_indicator}")
         
-        # Log smell count comparison (shown in PR for user review)
-        original_smell_count = report.total_smells
-        if original_smell_count > 0 and not self.dry_run:
-            from detection.designite_runner import DesigniteRunner
-            designite_runner = DesigniteRunner(self.config)
-            
-            # Run DesigniteJava and get new smell count
-            new_smell_count = designite_runner.run_and_get_smell_count(report.class_name)
-            
-            if new_smell_count is not None:
-                smell_change = new_smell_count - original_smell_count
-                smell_indicator = "🔻" if smell_change < 0 else ("=" if smell_change == 0 else "🔺")
-                logger.info(f"  Smells: {original_smell_count}→{new_smell_count} {smell_indicator} ({smell_change:+d})")
+        # Log smell count comparison
+        if original_smell_count is not None and new_smell_count is not None:
+            smell_change = new_smell_count - original_smell_count
+            smell_indicator = "🔻" if smell_change < 0 else ("=" if smell_change == 0 else "🔺")
+            logger.info(f"  DesigniteJava Smells: {original_smell_count}→{new_smell_count} {smell_indicator} ({smell_change:+d})")
         
         return RefactoringResult(
             file_path=str(file_path),
             class_name=report.class_name,
             smells_fixed=[{'type': s['type'], 'cause': s['cause'], 'severity': 'medium'} for s in smells],
             original_metrics={
-                'loc': original_metrics.loc if original_metrics else (report.metrics.loc if report.metrics else 0),
-                'cyclomatic_complexity': original_metrics.cyclomatic_complexity if original_metrics else (report.metrics.cyclomatic_complexity if report.metrics else 0),
-                'methods_count': original_metrics.methods_count if original_metrics else (report.metrics.methods_count if report.metrics else 0)
+                'loc': original_metrics.get('loc', 0) if original_metrics else (report.metrics.loc if report.metrics else 0),
+                'cyclomatic_complexity': original_metrics.get('cyclomatic_complexity', 0) if original_metrics else (report.metrics.cyclomatic_complexity if report.metrics else 0),
+                'methods_count': original_metrics.get('methods_count', 0) if original_metrics else (report.metrics.methods_count if report.metrics else 0)
             },
             new_metrics={
-                'loc': new_metrics.loc if new_metrics else 0,
-                'cyclomatic_complexity': new_metrics.cyclomatic_complexity if new_metrics else 0,
-                'methods_count': new_metrics.methods_count if new_metrics else 0
+                'loc': new_metrics.get('loc', 0) if new_metrics else 0,
+                'cyclomatic_complexity': new_metrics.get('cyclomatic_complexity', 0) if new_metrics else 0,
+                'methods_count': new_metrics.get('methods_count', 0) if new_metrics else 0
             }
         )
         

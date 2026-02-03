@@ -282,6 +282,67 @@ class DesigniteRunner:
         package_path = package.replace('.', '/')
         return f"{package_path}/{type_name}.java"
     
+    def parse_type_metrics(self) -> Dict[str, Dict]:
+        """
+        Parse the TypeMetrics.csv output file from DesigniteJava.
+        
+        Returns:
+            Dictionary mapping class names to their metrics
+        """
+        current_path = getattr(self, '_current_output_path', self.output_path)
+        csv_path = current_path / "TypeMetrics.csv"
+        metrics = {}
+        
+        if not csv_path.exists():
+            logger.warning(f"Type metrics file not found: {csv_path}")
+            return metrics
+            
+        try:
+            with open(csv_path, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    class_name = row.get('Type Name', row.get('type_name', ''))
+                    if class_name:
+                        metrics[class_name] = {
+                            'loc': int(row.get('LOC', row.get('loc', 0)) or 0),
+                            'cyclomatic_complexity': int(row.get('WMC', row.get('wmc', 0)) or 0),  # Weighted Methods per Class
+                            'methods_count': int(row.get('NOM', row.get('nom', 0)) or 0),  # Number of Methods
+                            'fields_count': int(row.get('NOF', row.get('nof', 0)) or 0),  # Number of Fields
+                            'coupling': int(row.get('CBO', row.get('cbo', 0)) or 0),  # Coupling Between Objects
+                            'depth_inheritance': int(row.get('DIT', row.get('dit', 0)) or 0),  # Depth of Inheritance Tree
+                            'package': row.get('Package Name', row.get('package_name', ''))
+                        }
+                        
+            logger.info(f"Parsed metrics for {len(metrics)} classes")
+            
+        except Exception as e:
+            logger.error(f"Error parsing type metrics: {e}")
+            
+        return metrics
+    
+    def get_metrics_for_class(self, class_name: str) -> Optional[Dict]:
+        """
+        Get DesigniteJava metrics for a specific class.
+        
+        Args:
+            class_name: Name of the class
+            
+        Returns:
+            Dictionary of metrics or None
+        """
+        all_metrics = self.parse_type_metrics()
+        
+        # Try exact match first
+        if class_name in all_metrics:
+            return all_metrics[class_name]
+            
+        # Try case-insensitive match
+        for name, metrics in all_metrics.items():
+            if name.lower() == class_name.lower():
+                return metrics
+                
+        return None
+    
     def get_all_smells(self) -> Dict:
         """
         Get all detected smells (design + implementation).
