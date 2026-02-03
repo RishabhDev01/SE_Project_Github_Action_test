@@ -149,6 +149,10 @@ public class PreviewResourceServlet extends HttpServlet {
             }
         }
 
+        serveResource(request, response, resourceRequest, resourceStream, resourceLastMod);
+    }
+
+    private void serveResource(HttpServletRequest request, HttpServletResponse response, WeblogPreviewResourceRequest resourceRequest, InputStream resourceStream, long resourceLastMod) throws ServletException, IOException {
         // Respond with 304 Not Modified if it is not modified.
         if (ModDateHeaderUtil.respondIfNotModified(request, response,
                 resourceLastMod, resourceRequest.getDeviceType())) {
@@ -173,8 +177,8 @@ public class PreviewResourceServlet extends HttpServlet {
                 response.reset();
                 response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             }
+        } finally {
+            resourceStream.close();
         }
-
     }
-
 }
