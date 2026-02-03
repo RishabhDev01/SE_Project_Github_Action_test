@@ -47,11 +47,20 @@ CRITICAL RULES - FAILURE TO FOLLOW THESE WILL CAUSE COMPILATION ERRORS:
 - Add TODO comments for any breaking changes that require updates elsewhere
 - Use meaningful names that reflect the purpose of classes and methods
 
-EXCEPTION HANDLING WARNING:
-If a method declares 'throws SomeException', any refactored version MUST also declare 'throws SomeException'.
-If calling a method that throws a checked exception, you must either:
-1. Keep the existing try-catch block, OR
-2. Propagate the exception with a throws clause
+CRITICAL EXCEPTION HANDLING RULES (MOST COMMON ERROR):
+1. If the original method has: "public void foo() throws IOException" 
+   Your refactored version MUST ALSO have: "public void foo() throws IOException"
+   
+2. If the original has: "throws WebloggerException, IOException"
+   You MUST preserve: "throws WebloggerException, IOException"
+   
+3. Examples of WRONG refactoring:
+   ORIGINAL: public void parse() throws IOException, SAXException { ... }
+   WRONG:    public void parse() { ... }  // COMPILATION ERROR!
+   CORRECT:  public void parse() throws IOException, SAXException { ... }
+
+4. If you extract code to a new helper method that calls something throwing an exception,
+   the new method must ALSO declare "throws" for those exceptions.
 """
 
     # Prompts for specific smell types
