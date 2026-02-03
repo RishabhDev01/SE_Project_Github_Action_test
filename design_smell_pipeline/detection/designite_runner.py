@@ -88,13 +88,34 @@ class DesigniteRunner:
         else:
             # Find project root by traversing up from this file
             project_root = Path(__file__).parent.parent.parent
+        
+        # Get the design_smell_pipeline directory (where tools/ is located)
+        pipeline_dir = Path(__file__).parent.parent
             
-        # Resolve all paths to absolute
-        jar_path = config.get('detection', {}).get('designite', {}).get('jar_path', './tools/DesigniteJava.jar')
+        # Get paths from config
+        jar_path_config = config.get('detection', {}).get('designite', {}).get('jar_path', './tools/DesigniteJava.jar')
         source_path = config.get('detection', {}).get('source_path', './app/src/main/java')
         output_path = config.get('detection', {}).get('output_path', './output/smells')
         
-        self.jar_path = (project_root / jar_path).resolve()
+        # Try to find JAR in multiple locations
+        possible_jar_paths = [
+            pipeline_dir / jar_path_config,  # design_smell_pipeline/tools/
+            project_root / jar_path_config,  # project_root/tools/
+            pipeline_dir / "tools" / "DesigniteJava.jar",  # explicit path
+            project_root / "design_smell_pipeline" / "tools" / "DesigniteJava.jar",
+        ]
+        
+        self.jar_path = None
+        for jar_path in possible_jar_paths:
+            resolved = jar_path.resolve()
+            if resolved.exists():
+                self.jar_path = resolved
+                break
+        
+        if not self.jar_path:
+            # Default to first option for error messages
+            self.jar_path = possible_jar_paths[0].resolve()
+        
         self.source_path = (project_root / source_path).resolve()
         self.output_path = (project_root / output_path).resolve()
         self.excluded_patterns = config.get('detection', {}).get('excluded_patterns', [])
