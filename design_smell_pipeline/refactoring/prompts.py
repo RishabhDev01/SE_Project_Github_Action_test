@@ -35,12 +35,23 @@ Your task is to refactor code to eliminate design smells while:
 3. Following SOLID principles and clean code practices
 4. Adding appropriate comments to explain complex changes
 
-IMPORTANT RULES:
+CRITICAL RULES - FAILURE TO FOLLOW THESE WILL CAUSE COMPILATION ERRORS:
 - Return ONLY the refactored Java code, no explanations
-- Maintain the same package and import structure unless changes are necessary
-- Keep method signatures unchanged unless the smell specifically requires it
+- NEVER remove or change 'throws' declarations on methods - preserve ALL checked exceptions
+- NEVER remove exception handling (try-catch blocks) unless refactoring specifically targets it
+- Keep ALL existing imports - only add new ones if needed
+- Keep method signatures EXACTLY the same (name, parameters, return type, throws clause)
+- Do NOT introduce new method calls to methods that don't exist
+- Do NOT use variables that haven't been declared
+- Preserve ALL public and protected method signatures exactly
 - Add TODO comments for any breaking changes that require updates elsewhere
 - Use meaningful names that reflect the purpose of classes and methods
+
+EXCEPTION HANDLING WARNING:
+If a method declares 'throws SomeException', any refactored version MUST also declare 'throws SomeException'.
+If calling a method that throws a checked exception, you must either:
+1. Keep the existing try-catch block, OR
+2. Propagate the exception with a throws clause
 """
 
     # Prompts for specific smell types

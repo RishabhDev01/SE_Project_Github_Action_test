@@ -276,12 +276,30 @@ class RefactoringPipeline:
         # Merge chunks
         final_code = self.context_manager.merge_refactored_chunks(context)
         
-        # Full validation (compile + test)
+        # Full validation (compile + test) with retry on failure
         if not self.dry_run:
             validation = self.validator.full_validation(file_path, final_code)
             if not validation.is_valid:
                 logger.warning(f"Full validation failed: {validation.error_message}")
-                return None
+                # Retry with compilation error feedback
+                logger.info(f"  Retrying with compilation error feedback...")
+                fixed_code = self._retry_with_compilation_error(
+                    context.chunks[0].content,  # Original code
+                    final_code,
+                    validation.error_message,
+                    smell_info
+                )
+                if fixed_code:
+                    # Validate again
+                    validation = self.validator.full_validation(file_path, fixed_code)
+                    if validation.is_valid:
+                        final_code = fixed_code
+                        logger.info(f"  Retry successful!")
+                    else:
+                        logger.warning(f"  Retry also failed: {validation.error_message}")
+                        return None
+                else:
+                    return None
                 
         # Write changes
         if not self.dry_run:
@@ -399,6 +417,56 @@ Return only valid Java code.
         response = self.llm_client.generate_with_retry(prompt)
         if response:
             code = self._extract_java_code(response)
+            validation = self.validator.validate_syntax(code)
+            if validation.is_valid:
+                return code
+                
+        return None
+        
+    def _retry_with_compilation_error(
+        self, 
+        original_code: str, 
+        failed_code: str, 
+        error: str,
+        smell_info: str
+    ) -> Optional[str]:
+        """Retry refactoring with compilation error feedback."""
+        prompt = f"""The previous refactoring attempt resulted in a COMPILATION ERROR.
+
+COMPILATION ERROR: {error}
+
+COMMON CAUSES OF THIS ERROR:
+- If "unreported exception": You removed or changed a 'throws' clause. Keep ALL original throws declarations.
+- If "cannot find symbol": You used a variable or method that doesn't exist. Use only existing variables/methods.
+- If "method already defined": You created a duplicate method. Remove the duplicate.
+
+ORIGINAL WORKING CODE:
+```java
+{original_code}
+```
+
+FAILED REFACTORED CODE (DO NOT USE AS-IS):
+```java
+{failed_code}
+```
+
+SMELLS TO ADDRESS:
+{smell_info}
+
+INSTRUCTIONS:
+1. Start fresh from the ORIGINAL WORKING CODE
+2. Make minimal changes to fix the smells
+3. KEEP all 'throws' declarations exactly as in the original
+4. KEEP all try-catch blocks unless specifically refactoring them
+5. Do NOT add new method calls or variables that don't exist
+
+Return only the corrected Java code.
+"""
+        
+        response = self.llm_client.generate_with_retry(prompt)
+        if response:
+            code = self._extract_java_code(response)
+            # Only do syntax validation here, compilation will be done by caller
             validation = self.validator.validate_syntax(code)
             if validation.is_valid:
                 return code
