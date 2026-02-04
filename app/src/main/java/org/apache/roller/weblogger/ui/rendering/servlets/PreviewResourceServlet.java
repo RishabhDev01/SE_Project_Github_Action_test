@@ -173,6 +173,10 @@ public class PreviewResourceServlet extends HttpServlet {
                 response.reset();
                 response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             }
+        } finally {
+            if (resourceStream != null) {
+                resourceStream.close();
+            }
         }
 
     }
