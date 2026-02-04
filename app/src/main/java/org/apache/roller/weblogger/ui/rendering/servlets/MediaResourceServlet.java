@@ -88,21 +88,18 @@ public class MediaResourceServlet extends HttpServlet {
             return;
         }
 
-        long resourceLastMod;
-        InputStream resourceStream = null;
         MediaFile mediaFile;
-
         try {
             mediaFile = mfMgr.getMediaFile(resourceRequest.getResourceId(),
                     true);
-            resourceLastMod = mediaFile.getLastModified();
-
         } catch (Exception ex) {
             // still not found? then we don't have it, 404.
             log.debug("Unable to get resource", ex);
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
+
+        long resourceLastMod = mediaFile.getLastModified();
 
         // Respond with 304 Not Modified if it is not modified.
         if (ModDateHeaderUtil.respondIfNotModified(request, response,
@@ -114,11 +111,11 @@ public class MediaResourceServlet extends HttpServlet {
                     resourceRequest.getDeviceType());
         }
 
-        // set the content type based on whatever is in our web.xml mime defs
+        InputStream resourceStream;
         if (resourceRequest.isThumbnail()) {
-            response.setContentType("image/png");
             try {
                 resourceStream = mediaFile.getThumbnailInputStream();
+                response.setContentType("image/png");
             } catch (Exception e) {
                 if (log.isDebugEnabled()) {
                     log.debug(
@@ -127,12 +124,12 @@ public class MediaResourceServlet extends HttpServlet {
                 } else {
                     log.warn("ERROR loading thumbnail for " + mediaFile.getId());
                 }
+                resourceStream = mediaFile.getInputStream();
+                response.setContentType(mediaFile.getContentType());
             }
-        }
-
-        if (resourceStream == null) {
-            response.setContentType(mediaFile.getContentType());
+        } else {
             resourceStream = mediaFile.getInputStream();
+            response.setContentType(mediaFile.getContentType());
         }
 
         OutputStream out;
