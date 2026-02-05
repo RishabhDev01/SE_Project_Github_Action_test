@@ -70,10 +70,6 @@ public class ResourceServlet extends HttpServlet {
             throws ServletException, IOException {
 
         Weblog weblog;
-        //String ctx = request.getContextPath();
-        //String servlet = request.getServletPath();
-        //String reqURI = request.getRequestURI();
-
         WeblogResourceRequest resourceRequest;
         try {
             // parse the incoming request and extract the relevant data
@@ -131,9 +127,12 @@ public class ResourceServlet extends HttpServlet {
                         .getMediaFileManager();
                 MediaFile mf = mmgr.getMediaFileByOriginalPath(weblog,
                         resourceRequest.getResourcePath());
-                resourceLastMod = mf.getLastModified();
-                resourceStream = mf.getInputStream();
-
+                if (mf != null) {
+                    resourceLastMod = mf.getLastModified();
+                    resourceStream = mf.getInputStream();
+                } else {
+                    throw new WebloggerException("Resource not found");
+                }
             } catch (Exception ex) {
                 // still not found? then we don't have it, 404.
                 if (!response.isCommitted()) {
