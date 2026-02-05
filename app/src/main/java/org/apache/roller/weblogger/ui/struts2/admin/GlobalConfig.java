@@ -44,7 +44,6 @@ import org.apache.struts2.dispatcher.Parameter;
 import org.apache.struts2.interceptor.HttpParametersAware;
 import org.apache.struts2.interceptor.ServletRequestAware;
 
-
 /**
  * Action which handles editing of global configuration.
  */
@@ -77,13 +76,11 @@ public class GlobalConfig extends UIAction implements HttpParametersAware, Servl
     // weblogs for frontpage blog chooser
     private Collection<Weblog> weblogs;
 
-
     public GlobalConfig() {
         this.actionName = "globalConfig";
         this.desiredMenu = "admin";
         this.pageTitle = "configForm.title";
     }
-
 
     @Override
     public boolean isWeblogRequired() {
@@ -94,7 +91,6 @@ public class GlobalConfig extends UIAction implements HttpParametersAware, Servl
     public List<String> requiredGlobalPermissionActions() {
         return Collections.singletonList(GlobalPermission.ADMIN);
     }
-
 
     /**
      * Prepare action by loading runtime properties map.
@@ -132,13 +128,11 @@ public class GlobalConfig extends UIAction implements HttpParametersAware, Servl
         setPluginsList(pmgr.getCommentPlugins());
     }
 
-
     /**
      * Display global properties editor form.
      */
     @Override
     public String execute() {
-
         // setup array of configured plugins
         if (!StringUtils.isEmpty(WebloggerRuntimeConfig.getProperty("users.comments.plugins"))) {
             setCommentPlugins(StringUtils.split(WebloggerRuntimeConfig.getProperty("users.comments.plugins"), ","));
@@ -146,7 +140,6 @@ public class GlobalConfig extends UIAction implements HttpParametersAware, Servl
 
         return SUCCESS;
     }
-
 
     /**
      * Save global properties.
@@ -157,92 +150,8 @@ public class GlobalConfig extends UIAction implements HttpParametersAware, Servl
         }
 
         // only set values for properties that are already defined
-        RuntimeConfigProperty updProp;
-        String incomingProp;
-        for (String propName : getProperties().keySet()) {
-            updProp = getProperties().get(propName);
-            incomingProp = this.getParameter(updProp.getName());
-
-            PropertyDef propertyDef = globalConfigDef.getPropertyDef( propName );
-            if ( propertyDef == null) {
-                // we're only processing defined properties, i.e. ones shown in the UI
-                continue;
-            }
-
-            if ( propertyDef.getType().equals("boolean") ) {
-
-                try {
-                    if (incomingProp == null) {
-                        updProp.setValue("false");
-                    } else {
-                        boolean value = Boolean.parseBoolean(incomingProp);
-                        updProp.setValue(Boolean.toString(value));
-                    }
-                    log.debug("Set boolean " + propName + " = " + incomingProp);
-                } catch ( Exception nfe ) {
-                    String propDesc = bundle.getString( propertyDef.getKey() );
-                    addError("ConfigForm.invalidBooleanProperty",
-                            Arrays.asList(propDesc, propName));
-                }
-
-            } else if ( incomingProp != null && propertyDef.getType().equals("integer") ) {
-
-                try {
-                    Integer.parseInt(incomingProp);
-                    updProp.setValue(incomingProp);
-                    log.debug("Set integer " + propName + " = " + incomingProp);
-                } catch ( NumberFormatException nfe ) {
-                    String propDesc = bundle.getString( propertyDef.getKey() );
-                    addError("ConfigForm.invalidIntegerProperty",
-                            Arrays.asList(propDesc, propName));
-                }
-
-            } else if ( incomingProp != null && propertyDef.getType().equals("float") ) {
-
-                try {
-                    Float.parseFloat(incomingProp);
-                    updProp.setValue(incomingProp);
-                    log.debug("Set float " + propName + " = " + incomingProp);
-                } catch ( NumberFormatException nfe ) {
-                    String propDesc = bundle.getString(propertyDef.getKey());
-                    addError("ConfigForm.invalidFloatProperty",
-                        Arrays.asList(propDesc, propName));
-                }
-
-            } else if ( incomingProp != null ){
-                updProp.setValue( incomingProp.trim() );
-                log.debug("Set something " + propName + " = " + incomingProp);
-
-            } else if ( propertyDef.getName().equals("users.comments.plugins") ) {
-                // not a problem
-
-            } else {
-                addError("ConfigForm.invalidProperty", propName);
-            }
-
-        }
-
-        if ( this.hasActionErrors() ) {
-            return ERROR;
-        }
-
-        // special handling for comment plugins
-        String enabledPlugins = "";
-        if (getCommentPlugins().length > 0) {
-            enabledPlugins = StringUtils.join(getCommentPlugins(), ",");
-        }
-        RuntimeConfigProperty prop = getProperties().get("users.comments.plugins");
-        prop.setValue(enabledPlugins);
-
         try {
-            // save 'em and flush
-            PropertiesManager mgr = WebloggerFactory.getWeblogger().getPropertiesManager();
-            mgr.saveProperties(getProperties());
-            WebloggerFactory.getWeblogger().flush();
-
-            // notify user of our success
-            addMessage("generic.changes.saved");
-
+            saveProperties();
         } catch (WebloggerException ex) {
             log.error("Error saving roller properties", ex);
             addError("generic.error.check.logs");
@@ -251,6 +160,94 @@ public class GlobalConfig extends UIAction implements HttpParametersAware, Servl
         return SUCCESS;
     }
 
+    private void saveProperties() throws WebloggerException {
+        // special handling for comment plugins
+        String enabledPlugins = "";
+        if (getCommentPlugins().length > 0) {
+            enabledPlugins = StringUtils.join(getCommentPlugins(), ",");
+        }
+        RuntimeConfigProperty prop = getProperties().get("users.comments.plugins");
+        prop.setValue(enabledPlugins);
+
+        // save 'em and flush
+        PropertiesManager mgr = WebloggerFactory.getWeblogger().getPropertiesManager();
+        mgr.saveProperties(getProperties());
+        WebloggerFactory.getWeblogger().flush();
+
+        // notify user of our success
+        addMessage("generic.changes.saved");
+    }
+
+    private void validateAndSetProperties() {
+        RuntimeConfigProperty updProp;
+        String incomingProp;
+        for (String propName : getProperties().keySet()) {
+            updProp = getProperties().get(propName);
+            incomingProp = this.getParameter(updProp.getName());
+
+            PropertyDef propertyDef = globalConfigDef.getPropertyDef(propName);
+            if (propertyDef == null) {
+                // we're only processing defined properties, i.e. ones shown in the UI
+                continue;
+            }
+
+            if (propertyDef.getType().equals("boolean")) {
+                validateAndSetBooleanProperty(updProp, incomingProp, propertyDef);
+            } else if (incomingProp != null && propertyDef.getType().equals("integer")) {
+                validateAndSetIntegerProperty(updProp, incomingProp, propertyDef);
+            } else if (incomingProp != null && propertyDef.getType().equals("float")) {
+                validateAndSetFloatProperty(updProp, incomingProp, propertyDef);
+            } else if (incomingProp != null) {
+                validateAndSetStringProperty(updProp, incomingProp, propertyDef);
+            } else if (propertyDef.getName().equals("users.comments.plugins")) {
+                // not a problem
+            } else {
+                addError("ConfigForm.invalidProperty", propName);
+            }
+        }
+    }
+
+    private void validateAndSetBooleanProperty(RuntimeConfigProperty updProp, String incomingProp, PropertyDef propertyDef) {
+        try {
+            if (incomingProp == null) {
+                updProp.setValue("false");
+            } else {
+                boolean value = Boolean.parseBoolean(incomingProp);
+                updProp.setValue(Boolean.toString(value));
+            }
+            log.debug("Set boolean " + updProp.getName() + " = " + incomingProp);
+        } catch (Exception nfe) {
+            String propDesc = bundle.getString(propertyDef.getKey());
+            addError("ConfigForm.invalidBooleanProperty", Arrays.asList(propDesc, updProp.getName()));
+        }
+    }
+
+    private void validateAndSetIntegerProperty(RuntimeConfigProperty updProp, String incomingProp, PropertyDef propertyDef) {
+        try {
+            Integer.parseInt(incomingProp);
+            updProp.setValue(incomingProp);
+            log.debug("Set integer " + updProp.getName() + " = " + incomingProp);
+        } catch (NumberFormatException nfe) {
+            String propDesc = bundle.getString(propertyDef.getKey());
+            addError("ConfigForm.invalidIntegerProperty", Arrays.asList(propDesc, updProp.getName()));
+        }
+    }
+
+    private void validateAndSetFloatProperty(RuntimeConfigProperty updProp, String incomingProp, PropertyDef propertyDef) {
+        try {
+            Float.parseFloat(incomingProp);
+            updProp.setValue(incomingProp);
+            log.debug("Set float " + updProp.getName() + " = " + incomingProp);
+        } catch (NumberFormatException nfe) {
+            String propDesc = bundle.getString(propertyDef.getKey());
+            addError("ConfigForm.invalidFloatProperty", Arrays.asList(propDesc, updProp.getName()));
+        }
+    }
+
+    private void validateAndSetStringProperty(RuntimeConfigProperty updProp, String incomingProp, PropertyDef propertyDef) {
+        updProp.setValue(incomingProp.trim());
+        log.debug("Set something " + updProp.getName() + " = " + incomingProp);
+    }
 
     @Override
     public void setParameters(HttpParameters parameters) {
@@ -269,7 +266,6 @@ public class GlobalConfig extends UIAction implements HttpParametersAware, Servl
     private String getParameter(String key) {
         return this.params.get(key).getValue();
     }
-
 
     public Map<String, RuntimeConfigProperty> getProperties() {
         return properties;

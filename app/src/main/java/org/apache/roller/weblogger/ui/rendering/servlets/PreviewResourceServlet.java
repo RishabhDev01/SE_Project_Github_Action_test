@@ -89,8 +89,7 @@ public class PreviewResourceServlet extends HttpServlet {
             return;
         }
 
-        log.debug("Resource requested [" + resourceRequest.getResourcePath()
-                + "]");
+        log.debug("Resource requested [" + resourceRequest.getResourcePath() + "]");
 
         long resourceLastMod = 0;
         InputStream resourceStream = null;
@@ -173,8 +172,15 @@ public class PreviewResourceServlet extends HttpServlet {
                 response.reset();
                 response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             }
+        } finally {
+            if(resourceStream != null) {
+                try {
+                    resourceStream.close();
+                } catch (IOException e) {
+                    log.error("Error closing resource input stream", e);
+                }
+            }
         }
-
     }
 
 }
