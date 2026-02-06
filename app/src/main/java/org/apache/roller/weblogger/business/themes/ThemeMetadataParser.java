@@ -31,7 +31,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
-
 /**
  * The parser for theme xml descriptors.
  *
@@ -44,31 +43,18 @@ public class ThemeMetadataParser {
      * set of Java objects.
      **/
     public ThemeMetadata unmarshall(InputStream instream)
-        throws ThemeParsingException, IOException, JDOMException {
+            throws ThemeParsingException, IOException, JDOMException {
         
-        if(instream == null) {
+        if (instream == null) {
             throw new IOException("InputStream is null!");
         }
         
         ThemeMetadata theme = new ThemeMetadata();
         
-        SAXBuilder builder = new SAXBuilder();
-        Document doc = builder.build(instream);
+        Document document = parseDocument(instream);
+        Element root = document.getRootElement();
         
-        // start at root and get theme id, name, description and author
-        Element root = doc.getRootElement();
-        theme.setId(root.getChildText("id"));
-        theme.setName(root.getChildText("name"));
-        theme.setDescription(root.getChildText("description"));
-        theme.setAuthor(root.getChildText("author"));
-
-        // dual-theme (standard & mobile) or one-theme-fits-all?
-        theme.setDualTheme("true".equalsIgnoreCase(root.getChildText("dualTheme")));
-
-        // if either id or name is null then throw a parsing exception
-        if(StringUtils.isEmpty(theme.getId()) || StringUtils.isEmpty(theme.getName())) {
-            throw new ThemeParsingException("'id' and 'name' are required theme elements");
-        }
+        theme = parseThemeMetadata(root, theme);
         
         // now grab the preview image path
         Element previewImage = root.getChild("preview-image");
@@ -82,7 +68,6 @@ public class ThemeMetadataParser {
         Element stylesheet = root.getChild("stylesheet");
         if (stylesheet != null) {
             theme.setStylesheet(elementToStylesheet(stylesheet));
-
         }
         
         // now grab the static resources
@@ -95,34 +80,54 @@ public class ThemeMetadataParser {
         boolean weblogActionTemplate = false;
         List<Element> templates = root.getChildren("template");
         for (Element template : templates) {
-
             ThemeMetadataTemplate tmpl = elementToTemplateMetadata(template);
             theme.addTemplate(tmpl);
 
-            if(ComponentType.WEBLOG.equals(tmpl.getAction())) {
+            if (ComponentType.WEBLOG.equals(tmpl.getAction())) {
                 weblogActionTemplate = true;
             }
         }
         
         // make sure all required elements are present and values are valid
         // check that there is a template with action='weblog'
-        if(!weblogActionTemplate) {
+        if (!weblogActionTemplate) {
             throw new ThemeParsingException("did not find a template of action = 'weblog'");
         }
         
         return theme;
     }
     
+    private Document parseDocument(InputStream instream) throws JDOMException, IOException {
+        SAXBuilder builder = new SAXBuilder();
+        return builder.build(instream);
+    }
     
-	private ThemeMetadataTemplate elementToTemplateMetadata(Element element)
-			throws ThemeParsingException {
+    private ThemeMetadata parseThemeMetadata(Element root, ThemeMetadata theme) throws ThemeParsingException {
+        theme.setId(root.getChildText("id"));
+        theme.setName(root.getChildText("name"));
+        theme.setDescription(root.getChildText("description"));
+        theme.setAuthor(root.getChildText("author"));
 
-		ThemeMetadataTemplate template = new ThemeMetadataTemplate();
+        // dual-theme (standard & mobile) or one-theme-fits-all?
+        theme.setDualTheme("true".equalsIgnoreCase(root.getChildText("dualTheme")));
 
-		template.setName(element.getChildText("name"));
-		template.setDescription(element.getChildText("description"));
-		template.setLink(element.getChildText("link"));
-		template.setContentType(element.getChildText("contentType"));
+        // if either id or name is null then throw a parsing exception
+        if (StringUtils.isEmpty(theme.getId()) || StringUtils.isEmpty(theme.getName())) {
+            throw new ThemeParsingException("'id' and 'name' are required theme elements");
+        }
+        
+        return theme;
+    }
+    
+    private ThemeMetadataTemplate elementToTemplateMetadata(Element element)
+            throws ThemeParsingException {
+
+        ThemeMetadataTemplate template = new ThemeMetadataTemplate();
+
+        template.setName(element.getChildText("name"));
+        template.setDescription(element.getChildText("description"));
+        template.setLink(element.getChildText("link"));
+        template.setContentType(element.getChildText("contentType"));
         String actionString = element.getAttributeValue("action");
         if (StringUtils.isEmpty(actionString)) {
             throw new ThemeParsingException("Template must contain an 'action' element");
@@ -134,11 +139,11 @@ public class ThemeMetadataParser {
             }
         }
 
-		//parsing template code segment
-		List<Element> renditionList = element.getChildren("rendition");
+        // parsing template code segment
+        List<Element> renditionList = element.getChildren("rendition");
 
-		for (Element renditionElement : renditionList) {
-			ThemeMetadataTemplateRendition rendition = new ThemeMetadataTemplateRendition();
+        for (Element renditionElement : renditionList) {
+            ThemeMetadataTemplateRendition rendition = new ThemeMetadataTemplateRendition();
             String renditionValue = renditionElement.getAttributeValue("type");
             if (renditionValue != null) {
                 try {
@@ -160,31 +165,30 @@ public class ThemeMetadataParser {
                     throw new ThemeParsingException("Unknown templateLanguage value '" + templateString + "'");
                 }
             }
-			rendition.setContentsFile(renditionElement.getChildText("contentsFile"));
+            rendition.setContentsFile(renditionElement.getChildText("contentsFile"));
             if (StringUtils.isEmpty(rendition.getContentsFile())) {
                 throw new ThemeParsingException("Rendition must contain a 'contentsFile' element");
             }
-			template.addTemplateRendition(rendition);
-		}
+            template.addTemplateRendition(rendition);
+        }
 
-		String navbar = element.getChildText("navbar");
-		if ("true".equalsIgnoreCase(navbar)) {
-			template.setNavbar(true);
-		}
+        String navbar = element.getChildText("navbar");
+        if ("true".equalsIgnoreCase(navbar)) {
+            template.setNavbar(true);
+        }
 
-		String hidden = element.getChildText("hidden");
-		if ("true".equalsIgnoreCase(hidden)) {
-			template.setHidden(true);
-		}
+        String hidden = element.getChildText("hidden");
+        if ("true".equalsIgnoreCase(hidden)) {
+            template.setHidden(true);
+        }
 
-		// validate template
-		if (StringUtils.isEmpty(template.getName())) {
-			throw new ThemeParsingException("templates must contain a 'name' element");
-		}
+        // validate template
+        if (StringUtils.isEmpty(template.getName())) {
+            throw new ThemeParsingException("templates must contain a 'name' element");
+        }
 
-		return template;
-	}
-    
+        return template;
+    }
     
     private ThemeMetadataTemplate elementToStylesheet(Element element) 
             throws ThemeParsingException {
@@ -230,14 +234,13 @@ public class ThemeMetadataParser {
         }
 
         // validate template
-        if(StringUtils.isEmpty(template.getName())) {
+        if (StringUtils.isEmpty(template.getName())) {
             throw new ThemeParsingException("stylesheet must contain a 'name' element");
         }
-        if(StringUtils.isEmpty(template.getLink())) {
+        if (StringUtils.isEmpty(template.getLink())) {
             throw new ThemeParsingException("stylesheet must contain a 'link' element");
         }
 
         return template;
     }
-    
 }
