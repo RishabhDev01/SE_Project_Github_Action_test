@@ -70,10 +70,6 @@ public class ResourceServlet extends HttpServlet {
             throws ServletException, IOException {
 
         Weblog weblog;
-        //String ctx = request.getContextPath();
-        //String servlet = request.getServletPath();
-        //String reqURI = request.getRequestURI();
-
         WeblogResourceRequest resourceRequest;
         try {
             // parse the incoming request and extract the relevant data
@@ -95,8 +91,7 @@ public class ResourceServlet extends HttpServlet {
             return;
         }
 
-        log.debug("Resource requested [" + resourceRequest.getResourcePath()
-                + "]");
+        log.debug("Resource requested [" + resourceRequest.getResourcePath() + "]");
 
         long resourceLastMod = 0;
         InputStream resourceStream = null;
@@ -131,9 +126,10 @@ public class ResourceServlet extends HttpServlet {
                         .getMediaFileManager();
                 MediaFile mf = mmgr.getMediaFileByOriginalPath(weblog,
                         resourceRequest.getResourcePath());
-                resourceLastMod = mf.getLastModified();
-                resourceStream = mf.getInputStream();
-
+                if (mf != null) {
+                    resourceLastMod = mf.getLastModified();
+                    resourceStream = mf.getInputStream();
+                }
             } catch (Exception ex) {
                 // still not found? then we don't have it, 404.
                 if (!response.isCommitted()) {
@@ -148,9 +144,18 @@ public class ResourceServlet extends HttpServlet {
             }
         }
 
+        if (resourceStream == null) {
+            if (!response.isCommitted()) {
+                response.reset();
+            }
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+
         // Respond with 304 Not Modified if it is not modified.
         if (ModDateHeaderUtil.respondIfNotModified(request, response,
                 resourceLastMod, resourceRequest.getDeviceType())) {
+            resourceStream.close();
             return;
         } else {
             // set last-modified date
