@@ -70,10 +70,6 @@ public class ResourceServlet extends HttpServlet {
             throws ServletException, IOException {
 
         Weblog weblog;
-        //String ctx = request.getContextPath();
-        //String servlet = request.getServletPath();
-        //String reqURI = request.getRequestURI();
-
         WeblogResourceRequest resourceRequest;
         try {
             // parse the incoming request and extract the relevant data
@@ -124,7 +120,6 @@ public class ResourceServlet extends HttpServlet {
             return;
         }
 
-        // if not from theme then see if resource is in weblog's upload dir
         if (resourceStream == null) {
             try {
                 MediaFileManager mmgr = WebloggerFactory.getWeblogger()
