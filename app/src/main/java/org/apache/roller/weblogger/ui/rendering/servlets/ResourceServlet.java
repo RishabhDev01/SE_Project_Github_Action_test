@@ -69,113 +69,90 @@ public class ResourceServlet extends HttpServlet {
     public void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        Weblog weblog;
-        //String ctx = request.getContextPath();
-        //String servlet = request.getServletPath();
-        //String reqURI = request.getRequestURI();
-
-        WeblogResourceRequest resourceRequest;
         try {
-            // parse the incoming request and extract the relevant data
-            resourceRequest = new WeblogResourceRequest(request);
+            WeblogResourceRequest resourceRequest = parseRequest(request);
+            Weblog weblog = resourceRequest.getWeblog();
 
-            weblog = resourceRequest.getWeblog();
             if (weblog == null) {
                 throw new WebloggerException("unable to lookup weblog: "
                         + resourceRequest.getWeblogHandle());
             }
 
-        } catch (Exception e) {
-            // invalid resource request or weblog doesn't exist
+            log.debug("Resource requested [" + resourceRequest.getResourcePath() + "]");
+
+            Resource resource = findResource(weblog, resourceRequest);
+            if (resource == null) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                return;
+            }
+
+            if (ModDateHeaderUtil.respondIfNotModified(request, response, resource.getLastModified(), resourceRequest.getDeviceType())) {
+                return;
+            } else {
+                ModDateHeaderUtil.setLastModifiedHeader(response, resource.getLastModified(), resourceRequest.getDeviceType());
+            }
+
+            response.setContentType(context.getMimeType(resourceRequest.getResourcePath()));
+            resource.transferTo(response.getOutputStream());
+
+        } catch (WebloggerException e) {
             if (!response.isCommitted()) {
                 response.reset();
             }
-            log.debug("error creating weblog resource request", e);
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return;
+        } catch (Exception e) {
+            if (!response.isCommitted()) {
+                response.reset();
+            }
+            log.debug("error serving resource", e);
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
+    }
 
-        log.debug("Resource requested [" + resourceRequest.getResourcePath()
-                + "]");
+    private WeblogResourceRequest parseRequest(HttpServletRequest request) throws Exception {
+        return new WeblogResourceRequest(request);
+    }
 
-        long resourceLastMod = 0;
-        InputStream resourceStream = null;
-
-        // first see if resource comes from weblog's shared theme
+    private Resource findResource(Weblog weblog, WeblogResourceRequest resourceRequest) {
         try {
             WeblogTheme weblogTheme = weblog.getTheme();
             if (weblogTheme != null) {
-                ThemeResource resource = weblogTheme
-                        .getResource(resourceRequest.getResourcePath());
+                ThemeResource resource = weblogTheme.getResource(resourceRequest.getResourcePath());
                 if (resource != null) {
-                    resourceLastMod = resource.getLastModified();
-                    resourceStream = resource.getInputStream();
+                    return new Resource(resource.getLastModified(), resource.getInputStream());
                 }
             }
         } catch (Exception ex) {
-            // hmmm, some kind of error getting theme. that's an error.
-            if (!response.isCommitted()) {
-                response.reset();
-            }
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            if(resourceStream != null) {
-                resourceStream.close();
-            }
-            return;
+            log.debug("error getting theme resource", ex);
         }
-
-        // if not from theme then see if resource is in weblog's upload dir
-        if (resourceStream == null) {
-            try {
-                MediaFileManager mmgr = WebloggerFactory.getWeblogger()
-                        .getMediaFileManager();
-                MediaFile mf = mmgr.getMediaFileByOriginalPath(weblog,
-                        resourceRequest.getResourcePath());
-                resourceLastMod = mf.getLastModified();
-                resourceStream = mf.getInputStream();
-
-            } catch (Exception ex) {
-                // still not found? then we don't have it, 404.
-                if (!response.isCommitted()) {
-                    response.reset();
-                }
-                log.debug("Unable to get resource", ex);
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                if(resourceStream != null) {
-                    resourceStream.close();
-                }
-                return;
-            }
-        }
-
-        // Respond with 304 Not Modified if it is not modified.
-        if (ModDateHeaderUtil.respondIfNotModified(request, response,
-                resourceLastMod, resourceRequest.getDeviceType())) {
-            return;
-        } else {
-            // set last-modified date
-            ModDateHeaderUtil.setLastModifiedHeader(response, resourceLastMod,
-                    resourceRequest.getDeviceType());
-        }
-
-        // set the content type based on whatever is in our web.xml mime defs
-        response.setContentType(this.context.getMimeType(resourceRequest
-                .getResourcePath()));
 
         try {
-            // ok, lets serve up the file
-            resourceStream.transferTo(response.getOutputStream());
-
-        } catch (IOException ex) {
-            if (!response.isCommitted()) {
-                response.reset();
-            }
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        } finally {
-            // make sure stream to resource file is closed
-            resourceStream.close();
+            MediaFileManager mmgr = WebloggerFactory.getWeblogger().getMediaFileManager();
+            MediaFile mf = mmgr.getMediaFileByOriginalPath(weblog, resourceRequest.getResourcePath());
+            return new Resource(mf.getLastModified(), mf.getInputStream());
+        } catch (Exception ex) {
+            log.debug("error getting media file", ex);
         }
 
+        return null;
     }
 
+    private static class Resource {
+        private long lastModified;
+        private InputStream inputStream;
+
+        public Resource(long lastModified, InputStream inputStream) {
+            this.lastModified = lastModified;
+            this.inputStream = inputStream;
+        }
+
+        public long getLastModified() {
+            return lastModified;
+        }
+
+        public void transferTo(java.io.OutputStream out) throws IOException {
+            inputStream.transferTo(out);
+            inputStream.close();
+        }
+    }
 }
