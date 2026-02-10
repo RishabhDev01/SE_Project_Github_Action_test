@@ -32,7 +32,6 @@ import org.apache.roller.weblogger.ui.struts2.util.UIAction;
 import org.apache.roller.weblogger.util.MailUtil;
 import org.apache.struts2.convention.annotation.AllowedMethods;
 
-
 /**
  * Allows website admin to invite new members to website.
  *
@@ -179,4 +178,7 @@ public class MembersInvite extends UIAction {
         this.permissionString = permission;
     }
     
+    private User getUser(UserManager umgr) throws WebloggerException {
+        return umgr.getUserByUserName(getUserName());
+    }
 }
