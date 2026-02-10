@@ -70,10 +70,6 @@ public class ResourceServlet extends HttpServlet {
             throws ServletException, IOException {
 
         Weblog weblog;
-        //String ctx = request.getContextPath();
-        //String servlet = request.getServletPath();
-        //String reqURI = request.getRequestURI();
-
         WeblogResourceRequest resourceRequest;
         try {
             // parse the incoming request and extract the relevant data
@@ -95,8 +91,7 @@ public class ResourceServlet extends HttpServlet {
             return;
         }
 
-        log.debug("Resource requested [" + resourceRequest.getResourcePath()
-                + "]");
+        log.debug("Resource requested [" + resourceRequest.getResourcePath() + "]");
 
         long resourceLastMod = 0;
         InputStream resourceStream = null;
@@ -173,7 +168,9 @@ public class ResourceServlet extends HttpServlet {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         } finally {
             // make sure stream to resource file is closed
-            resourceStream.close();
+            if(resourceStream != null) {
+                resourceStream.close();
+            }
         }
 
     }
