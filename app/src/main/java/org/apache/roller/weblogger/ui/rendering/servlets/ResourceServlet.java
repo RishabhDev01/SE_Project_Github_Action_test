@@ -70,10 +70,6 @@ public class ResourceServlet extends HttpServlet {
             throws ServletException, IOException {
 
         Weblog weblog;
-        //String ctx = request.getContextPath();
-        //String servlet = request.getServletPath();
-        //String reqURI = request.getRequestURI();
-
         WeblogResourceRequest resourceRequest;
         try {
             // parse the incoming request and extract the relevant data
@@ -176,6 +172,22 @@ public class ResourceServlet extends HttpServlet {
             resourceStream.close();
         }
 
+    }
+
+    private void serveResource(HttpServletResponse response, long resourceLastMod, InputStream resourceStream, WeblogResourceRequest resourceRequest) throws IOException {
+        if (ModDateHeaderUtil.respondIfNotModified(null, response, resourceLastMod, resourceRequest.getDeviceType())) {
+            return;
+        } else {
+            ModDateHeaderUtil.setLastModifiedHeader(response, resourceLastMod, resourceRequest.getDeviceType());
+        }
+
+        response.setContentType(context.getMimeType(resourceRequest.getResourcePath()));
+
+        try {
+            resourceStream.transferTo(response.getOutputStream());
+        } finally {
+            resourceStream.close();
+        }
     }
 
 }
