@@ -52,10 +52,8 @@ public class MediaResourceServlet extends HttpServlet {
 
     @Override
     public void init(ServletConfig config) throws ServletException {
-
         super.init(config);
         log.info("Initializing ResourceServlet");
-
     }
 
     /**
@@ -65,100 +63,90 @@ public class MediaResourceServlet extends HttpServlet {
     public void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        MediaFileManager mfMgr = WebloggerFactory.getWeblogger()
-                .getMediaFileManager();
-
-        Weblog weblog;
-
-        WeblogMediaResourceRequest resourceRequest;
         try {
-            // parse the incoming request and extract the relevant data
-            resourceRequest = new WeblogMediaResourceRequest(request);
-
-            weblog = resourceRequest.getWeblog();
-            if (weblog == null) {
-                throw new WebloggerException("unable to lookup weblog: "
-                        + resourceRequest.getWeblogHandle());
+            WeblogMediaResourceRequest resourceRequest = parseRequest(request);
+            MediaFile mediaFile = getMediaFile(resourceRequest);
+            if (mediaFile == null) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                return;
             }
 
+            if (isNotModified(request, response, mediaFile, resourceRequest)) {
+                return;
+            }
+
+            serveMediaFile(response, mediaFile, resourceRequest);
         } catch (Exception e) {
-            // invalid resource request or weblog doesn't exist
-            log.debug("error creating weblog resource request", e);
-            response.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return;
+            handleException(response, e);
         }
+    }
 
-        long resourceLastMod;
-        InputStream resourceStream = null;
-        MediaFile mediaFile;
+    private WeblogMediaResourceRequest parseRequest(HttpServletRequest request) throws Exception {
+        WeblogMediaResourceRequest resourceRequest = new WeblogMediaResourceRequest(request);
+        Weblog weblog = resourceRequest.getWeblog();
+        if (weblog == null) {
+            throw new WebloggerException("unable to lookup weblog: " + resourceRequest.getWeblogHandle());
+        }
+        return resourceRequest;
+    }
 
+    private MediaFile getMediaFile(WeblogMediaResourceRequest resourceRequest) {
+        MediaFileManager mfMgr = WebloggerFactory.getWeblogger().getMediaFileManager();
         try {
-            mediaFile = mfMgr.getMediaFile(resourceRequest.getResourceId(),
-                    true);
-            resourceLastMod = mediaFile.getLastModified();
-
+            return mfMgr.getMediaFile(resourceRequest.getResourceId(), true);
         } catch (Exception ex) {
-            // still not found? then we don't have it, 404.
             log.debug("Unable to get resource", ex);
-            response.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return;
+            return null;
         }
+    }
 
-        // Respond with 304 Not Modified if it is not modified.
-        if (ModDateHeaderUtil.respondIfNotModified(request, response,
-                resourceLastMod, resourceRequest.getDeviceType())) {
-            return;
+    private boolean isNotModified(HttpServletRequest request, HttpServletResponse response, MediaFile mediaFile, WeblogMediaResourceRequest resourceRequest) {
+        long resourceLastMod = mediaFile.getLastModified();
+        if (ModDateHeaderUtil.respondIfNotModified(request, response, resourceLastMod, resourceRequest.getDeviceType())) {
+            return true;
         } else {
-            // set last-modified date
-            ModDateHeaderUtil.setLastModifiedHeader(response, resourceLastMod,
-                    resourceRequest.getDeviceType());
+            ModDateHeaderUtil.setLastModifiedHeader(response, resourceLastMod, resourceRequest.getDeviceType());
         }
+        return false;
+    }
 
-        // set the content type based on whatever is in our web.xml mime defs
-        if (resourceRequest.isThumbnail()) {
-            response.setContentType("image/png");
-            try {
-                resourceStream = mediaFile.getThumbnailInputStream();
-            } catch (Exception e) {
-                if (log.isDebugEnabled()) {
-                    log.debug(
-                            "ERROR loading thumbnail for " + mediaFile.getId(),
-                            e);
-                } else {
-                    log.warn("ERROR loading thumbnail for " + mediaFile.getId());
-                }
-            }
-        }
-
-        if (resourceStream == null) {
-            response.setContentType(mediaFile.getContentType());
-            resourceStream = mediaFile.getInputStream();
-        }
-
-        OutputStream out;
+    private void serveMediaFile(HttpServletResponse response, MediaFile mediaFile, WeblogMediaResourceRequest resourceRequest) throws IOException {
+        InputStream resourceStream = null;
         try {
-            // ok, lets serve up the file
+            if (resourceRequest.isThumbnail()) {
+                response.setContentType("image/png");
+                resourceStream = mediaFile.getThumbnailInputStream();
+            } else {
+                response.setContentType(mediaFile.getContentType());
+                resourceStream = mediaFile.getInputStream();
+            }
+
+            OutputStream out = response.getOutputStream();
             byte[] buf = new byte[RollerConstants.EIGHT_KB_IN_BYTES];
             int length;
-            out = response.getOutputStream();
             while ((length = resourceStream.read(buf)) > 0) {
                 out.write(buf, 0, length);
             }
-
-            // close output stream
             out.close();
-
-        } catch (Exception ex) {
-            log.error("ERROR", ex);
+        } catch (Exception e) {
+            log.error("ERROR", e);
             if (!response.isCommitted()) {
                 response.reset();
                 response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             }
         } finally {
-            // make sure stream to resource file is closed
-            resourceStream.close();
+            if (resourceStream != null) {
+                resourceStream.close();
+            }
         }
-
     }
 
+    private void handleException(HttpServletResponse response, Exception e) {
+        log.debug("error creating weblog resource request", e);
+        try {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+        } catch (IOException ex) {
+            log.error("ERROR", ex);
+        }
+    }
 }

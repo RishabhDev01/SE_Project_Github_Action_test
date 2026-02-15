@@ -32,7 +32,6 @@ import org.apache.roller.weblogger.ui.struts2.util.UIAction;
 import org.apache.roller.weblogger.util.MailUtil;
 import org.apache.struts2.convention.annotation.AllowedMethods;
 
-
 /**
  * Allows website admin to invite new members to website.
  *
@@ -179,4 +178,24 @@ public class MembersInvite extends UIAction {
         this.permissionString = permission;
     }
     
+    private User getUser(UserManager umgr) throws WebloggerException {
+        return umgr.getUserByUserName(getUserName());
+    }
+    
+    private boolean hasExistingPermission(UserManager umgr, User user) {
+        try {
+            WeblogPermission perm = umgr.getWeblogPermissionIncludingPending(getActionWeblog(), user);
+            if (perm != null && perm.isPending()) {
+                addError("inviteMember.error.userAlreadyInvited");
+                return true;
+            } else if (perm != null) {
+                addError("inviteMember.error.userAlreadyMember");
+                return true;
+            }
+        } catch (WebloggerException ex) {
+            log.error("Error looking up permissions for weblog - " + getActionWeblog().getHandle(), ex);
+            addError("Error checking existing permissions");
+        }
+        return hasActionErrors();
+    }
 }

@@ -31,7 +31,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
-
 /**
  * The parser for theme xml descriptors.
  *
@@ -66,10 +65,8 @@ public class ThemeMetadataParser {
         theme.setDualTheme("true".equalsIgnoreCase(root.getChildText("dualTheme")));
 
         // if either id or name is null then throw a parsing exception
-        if(StringUtils.isEmpty(theme.getId()) || StringUtils.isEmpty(theme.getName())) {
-            throw new ThemeParsingException("'id' and 'name' are required theme elements");
-        }
-        
+        validateThemeMetadata(theme);
+
         // now grab the preview image path
         Element previewImage = root.getChild("preview-image");
         if (previewImage != null) {
@@ -113,16 +110,21 @@ public class ThemeMetadataParser {
         return theme;
     }
     
+    private void validateThemeMetadata(ThemeMetadata theme) throws ThemeParsingException {
+        if(StringUtils.isEmpty(theme.getId()) || StringUtils.isEmpty(theme.getName())) {
+            throw new ThemeParsingException("'id' and 'name' are required theme elements");
+        }
+    }
     
-	private ThemeMetadataTemplate elementToTemplateMetadata(Element element)
-			throws ThemeParsingException {
+    private ThemeMetadataTemplate elementToTemplateMetadata(Element element)
+            throws ThemeParsingException {
 
-		ThemeMetadataTemplate template = new ThemeMetadataTemplate();
+        ThemeMetadataTemplate template = new ThemeMetadataTemplate();
 
-		template.setName(element.getChildText("name"));
-		template.setDescription(element.getChildText("description"));
-		template.setLink(element.getChildText("link"));
-		template.setContentType(element.getChildText("contentType"));
+        template.setName(element.getChildText("name"));
+        template.setDescription(element.getChildText("description"));
+        template.setLink(element.getChildText("link"));
+        template.setContentType(element.getChildText("contentType"));
         String actionString = element.getAttributeValue("action");
         if (StringUtils.isEmpty(actionString)) {
             throw new ThemeParsingException("Template must contain an 'action' element");
@@ -134,11 +136,11 @@ public class ThemeMetadataParser {
             }
         }
 
-		//parsing template code segment
-		List<Element> renditionList = element.getChildren("rendition");
+        //parsing template code segment
+        List<Element> renditionList = element.getChildren("rendition");
 
-		for (Element renditionElement : renditionList) {
-			ThemeMetadataTemplateRendition rendition = new ThemeMetadataTemplateRendition();
+        for (Element renditionElement : renditionList) {
+            ThemeMetadataTemplateRendition rendition = new ThemeMetadataTemplateRendition();
             String renditionValue = renditionElement.getAttributeValue("type");
             if (renditionValue != null) {
                 try {
@@ -160,31 +162,30 @@ public class ThemeMetadataParser {
                     throw new ThemeParsingException("Unknown templateLanguage value '" + templateString + "'");
                 }
             }
-			rendition.setContentsFile(renditionElement.getChildText("contentsFile"));
+            rendition.setContentsFile(renditionElement.getChildText("contentsFile"));
             if (StringUtils.isEmpty(rendition.getContentsFile())) {
                 throw new ThemeParsingException("Rendition must contain a 'contentsFile' element");
             }
-			template.addTemplateRendition(rendition);
-		}
+            template.addTemplateRendition(rendition);
+        }
 
-		String navbar = element.getChildText("navbar");
-		if ("true".equalsIgnoreCase(navbar)) {
-			template.setNavbar(true);
-		}
+        String navbar = element.getChildText("navbar");
+        if ("true".equalsIgnoreCase(navbar)) {
+            template.setNavbar(true);
+        }
 
-		String hidden = element.getChildText("hidden");
-		if ("true".equalsIgnoreCase(hidden)) {
-			template.setHidden(true);
-		}
+        String hidden = element.getChildText("hidden");
+        if ("true".equalsIgnoreCase(hidden)) {
+            template.setHidden(true);
+        }
 
-		// validate template
-		if (StringUtils.isEmpty(template.getName())) {
-			throw new ThemeParsingException("templates must contain a 'name' element");
-		}
+        // validate template
+        if (StringUtils.isEmpty(template.getName())) {
+            throw new ThemeParsingException("templates must contain a 'name' element");
+        }
 
-		return template;
-	}
-    
+        return template;
+    }
     
     private ThemeMetadataTemplate elementToStylesheet(Element element) 
             throws ThemeParsingException {
@@ -239,5 +240,4 @@ public class ThemeMetadataParser {
 
         return template;
     }
-    
 }
