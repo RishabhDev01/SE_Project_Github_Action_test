@@ -70,10 +70,6 @@ public class ResourceServlet extends HttpServlet {
             throws ServletException, IOException {
 
         Weblog weblog;
-        //String ctx = request.getContextPath();
-        //String servlet = request.getServletPath();
-        //String reqURI = request.getRequestURI();
-
         WeblogResourceRequest resourceRequest;
         try {
             // parse the incoming request and extract the relevant data
@@ -95,8 +91,7 @@ public class ResourceServlet extends HttpServlet {
             return;
         }
 
-        log.debug("Resource requested [" + resourceRequest.getResourcePath()
-                + "]");
+        log.debug("Resource requested [" + resourceRequest.getResourcePath() + "]");
 
         long resourceLastMod = 0;
         InputStream resourceStream = null;
@@ -178,4 +173,33 @@ public class ResourceServlet extends HttpServlet {
 
     }
 
+    private void handleResourceResponse(HttpServletRequest request, HttpServletResponse response, long resourceLastMod, InputStream resourceStream, WeblogResourceRequest resourceRequest) throws IOException {
+        // Respond with 304 Not Modified if it is not modified.
+        if (ModDateHeaderUtil.respondIfNotModified(request, response,
+                resourceLastMod, resourceRequest.getDeviceType())) {
+            return;
+        } else {
+            // set last-modified date
+            ModDateHeaderUtil.setLastModifiedHeader(response, resourceLastMod,
+                    resourceRequest.getDeviceType());
+        }
+
+        // set the content type based on whatever is in our web.xml mime defs
+        response.setContentType(this.context.getMimeType(resourceRequest
+                .getResourcePath()));
+
+        try {
+            // ok, lets serve up the file
+            resourceStream.transferTo(response.getOutputStream());
+
+        } catch (IOException ex) {
+            if (!response.isCommitted()) {
+                response.reset();
+            }
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        } finally {
+            // make sure stream to resource file is closed
+            resourceStream.close();
+        }
+    }
 }
