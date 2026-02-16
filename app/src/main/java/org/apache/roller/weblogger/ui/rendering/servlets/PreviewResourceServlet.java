@@ -89,65 +89,19 @@ public class PreviewResourceServlet extends HttpServlet {
             return;
         }
 
-        log.debug("Resource requested [" + resourceRequest.getResourcePath()
-                + "]");
+        log.debug("Resource requested [" + resourceRequest.getResourcePath() + "]");
 
         long resourceLastMod = 0;
         InputStream resourceStream = null;
 
-        // first, see if we have a preview theme to operate from
-        if (!StringUtils.isEmpty(resourceRequest.getThemeName())) {
-            Theme theme = resourceRequest.getTheme();
-            ThemeResource resource = theme.getResource(resourceRequest
-                    .getResourcePath());
-            if (resource != null) {
-                resourceLastMod = resource.getLastModified();
-                resourceStream = resource.getInputStream();
-            }
-        }
+        resourceStream = getResourceStream(resourceRequest, weblog);
 
-        // second, see if resource comes from weblog's configured shared theme
         if (resourceStream == null) {
-            try {
-                WeblogTheme weblogTheme = weblog.getTheme();
-                if (weblogTheme != null) {
-                    ThemeResource resource = weblogTheme
-                            .getResource(resourceRequest.getResourcePath());
-                    if (resource != null) {
-                        resourceLastMod = resource.getLastModified();
-                        resourceStream = resource.getInputStream();
-                    }
-                }
-            } catch (Exception ex) {
-                // hmmm, some kind of error getting theme. that's an error.
-                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                if(resourceStream != null) {
-                    resourceStream.close();
-                }
-                return;
-            }
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
         }
 
-        // if not from theme then see if resource is in weblog's upload dir
-        if (resourceStream == null) {
-            try {
-                MediaFileManager mmgr = WebloggerFactory.getWeblogger()
-                        .getMediaFileManager();
-                MediaFile mf = mmgr.getMediaFileByOriginalPath(weblog,
-                        resourceRequest.getResourcePath());
-                resourceLastMod = mf.getLastModified();
-                resourceStream = mf.getInputStream();
-
-            } catch (Exception ex) {
-                // still not found? then we don't have it, 404.
-                log.debug("Unable to get resource", ex);
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                if(resourceStream != null) {
-                    resourceStream.close();
-                }
-                return;
-            }
-        }
+        resourceLastMod = getResourceLastModified(resourceRequest, resourceStream);
 
         // Respond with 304 Not Modified if it is not modified.
         if (ModDateHeaderUtil.respondIfNotModified(request, response,
@@ -175,6 +129,104 @@ public class PreviewResourceServlet extends HttpServlet {
             }
         }
 
+    }
+
+    private InputStream getResourceStream(WeblogPreviewResourceRequest resourceRequest, Weblog weblog) {
+        InputStream resourceStream = null;
+
+        // first, see if we have a preview theme to operate from
+        if (!StringUtils.isEmpty(resourceRequest.getThemeName())) {
+            Theme theme = resourceRequest.getTheme();
+            ThemeResource resource = theme.getResource(resourceRequest
+                    .getResourcePath());
+            if (resource != null) {
+                resourceStream = resource.getInputStream();
+            }
+        }
+
+        // second, see if resource comes from weblog's configured shared theme
+        if (resourceStream == null) {
+            try {
+                WeblogTheme weblogTheme = weblog.getTheme();
+                if (weblogTheme != null) {
+                    ThemeResource resource = weblogTheme
+                            .getResource(resourceRequest.getResourcePath());
+                    if (resource != null) {
+                        resourceStream = resource.getInputStream();
+                    }
+                }
+            } catch (Exception ex) {
+                // hmmm, some kind of error getting theme. that's an error.
+                return null;
+            }
+        }
+
+        // if not from theme then see if resource is in weblog's upload dir
+        if (resourceStream == null) {
+            try {
+                MediaFileManager mmgr = WebloggerFactory.getWeblogger()
+                        .getMediaFileManager();
+                MediaFile mf = mmgr.getMediaFileByOriginalPath(weblog,
+                        resourceRequest.getResourcePath());
+                resourceStream = mf.getInputStream();
+
+            } catch (Exception ex) {
+                // still not found? then we don't have it, 404.
+                log.debug("Unable to get resource", ex);
+                return null;
+            }
+        }
+
+        return resourceStream;
+    }
+
+    private long getResourceLastModified(WeblogPreviewResourceRequest resourceRequest, InputStream resourceStream) {
+        long resourceLastMod = 0;
+
+        // first, see if we have a preview theme to operate from
+        if (!StringUtils.isEmpty(resourceRequest.getThemeName())) {
+            Theme theme = resourceRequest.getTheme();
+            ThemeResource resource = theme.getResource(resourceRequest
+                    .getResourcePath());
+            if (resource != null) {
+                resourceLastMod = resource.getLastModified();
+            }
+        }
+
+        // second, see if resource comes from weblog's configured shared theme
+        if (resourceLastMod == 0) {
+            try {
+                WeblogTheme weblogTheme = resourceRequest.getWeblog().getTheme();
+                if (weblogTheme != null) {
+                    ThemeResource resource = weblogTheme
+                            .getResource(resourceRequest.getResourcePath());
+                    if (resource != null) {
+                        resourceLastMod = resource.getLastModified();
+                    }
+                }
+            } catch (Exception ex) {
+                // hmmm, some kind of error getting theme. that's an error.
+                return 0;
+            }
+        }
+
+        // if not from theme then see if resource is in weblog's upload dir
+        if (resourceLastMod == 0) {
+            try {
+                MediaFileManager mmgr = WebloggerFactory.getWeblogger()
+                        .getMediaFileManager();
+                MediaFile mf = mmgr.getMediaFileByOriginalPath(resourceRequest.getWeblog(),
+                        resourceRequest.getResourcePath());
+                resourceLastMod = mf.getLastModified();
+
+            } catch (Exception ex) {
+                // still not found? then we don't have it, 404.
+                log.debug("Unable to get resource", ex);
+                return 0;
+            }
+        }
+
+        return resourceLastMod;
     }
 
 }
