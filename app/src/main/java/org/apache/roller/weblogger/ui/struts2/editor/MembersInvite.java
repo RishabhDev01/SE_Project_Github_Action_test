@@ -32,7 +32,6 @@ import org.apache.roller.weblogger.ui.struts2.util.UIAction;
 import org.apache.roller.weblogger.util.MailUtil;
 import org.apache.struts2.convention.annotation.AllowedMethods;
 
-
 /**
  * Allows website admin to invite new members to website.
  *
@@ -179,4 +178,45 @@ public class MembersInvite extends UIAction {
         this.permissionString = permission;
     }
     
+    private boolean isGroupBloggingEnabled() {
+        return WebloggerConfig.getBooleanProperty("groupblogging.enabled");
+    }
+    
+    private boolean hasExistingPermissionsOrInvitation(User user) {
+        UserManager umgr = WebloggerFactory.getWeblogger().getUserManager();
+        try {
+            WeblogPermission perm = umgr.getWeblogPermissionIncludingPending(getActionWeblog(), user);
+            if (perm != null && perm.isPending()) {
+                addError("inviteMember.error.userAlreadyInvited");
+                return true;
+            } else if (perm != null) {
+                addError("inviteMember.error.userAlreadyMember");
+                return true;
+            }
+        } catch (WebloggerException ex) {
+            log.error("Error looking up permissions for weblog - " + getActionWeblog().getHandle(), ex);
+            addError("Error checking existing permissions");
+        }
+        return hasActionErrors();
+    }
+    
+    private void grantWeblogPermissionPending(User user) throws WebloggerException {
+        UserManager umgr = WebloggerFactory.getWeblogger().getUserManager();
+        umgr.grantWeblogPermissionPending(getActionWeblog(), user, Collections.singletonList(getPermissionString()));
+        WebloggerFactory.getWeblogger().flush();
+        addMessage("inviteMember.userInvited");
+    }
+    
+    private void sendWeblogInvitation(User user) {
+        if (MailUtil.isMailConfigured()) {
+            try {
+                MailUtil.sendWeblogInvitation(getActionWeblog(), user);
+            } catch (WebloggerException e) {
+                // TODO: this should be an error except that struts2 misbehaves
+                // when we chain this action to the next one thinking that an error
+                // means that validation broke during the chain
+                addMessage("error.untranslated", e.getMessage());
+            }
+        }
+    }
 }

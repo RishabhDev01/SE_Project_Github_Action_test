@@ -88,21 +88,18 @@ public class MediaResourceServlet extends HttpServlet {
             return;
         }
 
-        long resourceLastMod;
-        InputStream resourceStream = null;
         MediaFile mediaFile;
-
         try {
             mediaFile = mfMgr.getMediaFile(resourceRequest.getResourceId(),
                     true);
-            resourceLastMod = mediaFile.getLastModified();
-
         } catch (Exception ex) {
             // still not found? then we don't have it, 404.
             log.debug("Unable to get resource", ex);
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
+
+        long resourceLastMod = mediaFile.getLastModified();
 
         // Respond with 304 Not Modified if it is not modified.
         if (ModDateHeaderUtil.respondIfNotModified(request, response,
@@ -114,25 +111,25 @@ public class MediaResourceServlet extends HttpServlet {
                     resourceRequest.getDeviceType());
         }
 
-        // set the content type based on whatever is in our web.xml mime defs
-        if (resourceRequest.isThumbnail()) {
-            response.setContentType("image/png");
-            try {
+        InputStream resourceStream = null;
+        try {
+            if (resourceRequest.isThumbnail()) {
                 resourceStream = mediaFile.getThumbnailInputStream();
-            } catch (Exception e) {
-                if (log.isDebugEnabled()) {
-                    log.debug(
-                            "ERROR loading thumbnail for " + mediaFile.getId(),
-                            e);
-                } else {
-                    log.warn("ERROR loading thumbnail for " + mediaFile.getId());
-                }
+                response.setContentType("image/png");
+            } else {
+                resourceStream = mediaFile.getInputStream();
+                response.setContentType(mediaFile.getContentType());
             }
-        }
-
-        if (resourceStream == null) {
-            response.setContentType(mediaFile.getContentType());
-            resourceStream = mediaFile.getInputStream();
+        } catch (Exception e) {
+            if (log.isDebugEnabled()) {
+                log.debug(
+                        "ERROR loading thumbnail for " + mediaFile.getId(),
+                        e);
+            } else {
+                log.warn("ERROR loading thumbnail for " + mediaFile.getId());
+            }
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            return;
         }
 
         OutputStream out;
@@ -156,7 +153,13 @@ public class MediaResourceServlet extends HttpServlet {
             }
         } finally {
             // make sure stream to resource file is closed
-            resourceStream.close();
+            if (resourceStream != null) {
+                try {
+                    resourceStream.close();
+                } catch (IOException e) {
+                    log.error("Error closing input stream", e);
+                }
+            }
         }
 
     }
