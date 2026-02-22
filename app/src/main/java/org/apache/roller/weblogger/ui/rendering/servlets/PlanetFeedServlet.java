@@ -79,9 +79,6 @@ public class PlanetFeedServlet extends HttpServlet {
 
         log.debug("Entering");
 
-        PlanetManager planet = WebloggerFactory.getWeblogger()
-                .getPlanetManager();
-
         PlanetRequest planetRequest = null;
         try {
             planetRequest = new PlanetRequest(request);
@@ -121,7 +118,7 @@ public class PlanetFeedServlet extends HttpServlet {
 
         // cached content checking
         String cacheKey = PlanetCache.CACHE_ID + ":"
-                + this.generateKey(planetRequest);
+                + generateKey(planetRequest);
         CachedContent entry = (CachedContent) planetCache.get(cacheKey);
         if (entry != null) {
             response.setContentLength(entry.getContent().length);
@@ -135,14 +132,17 @@ public class PlanetFeedServlet extends HttpServlet {
 
             // populate the rendering model
             if (request.getParameter("group") != null) {
-                Planet planetObject = planet.getWeblogger("default");
+                Planet planetObject = WebloggerFactory.getWeblogger()
+                        .getPlanetManager().getWeblogger("default");
                 model.put(
                         "group",
-                        planet.getGroup(planetObject,
-                                request.getParameter("group")));
+                        WebloggerFactory.getWeblogger().getPlanetManager()
+                                .getGroup(planetObject,
+                                        request.getParameter("group")));
             }
 
-            model.put("planet", planet);
+            model.put("planet", WebloggerFactory.getWeblogger()
+                    .getPlanetManager());
             model.put("date", new Date());
             model.put("utils", new UtilitiesModel());
             model.put("lastModified", lastModified);
@@ -152,7 +152,6 @@ public class PlanetFeedServlet extends HttpServlet {
 
             model.put("siteDescription",
                     PlanetRuntimeConfig.getProperty("planet.site.description"));
-
 
             if (StringUtils.isNotEmpty(WebloggerRuntimeConfig
                     .getProperty("planet.site.absoluteurl"))) {

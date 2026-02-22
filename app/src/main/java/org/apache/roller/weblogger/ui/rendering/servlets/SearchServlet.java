@@ -61,19 +61,15 @@ public class SearchServlet extends HttpServlet {
     private static final Log log = LogFactory.getLog(SearchServlet.class);
 
     // Development theme reloading
-    Boolean themeReload = false;
+    private Boolean themeReload;
 
     /**
      * Init method for this servlet
      */
     @Override
     public void init(ServletConfig servletConfig) throws ServletException {
-
         super.init(servletConfig);
-
         log.info("Initializing SearchServlet");
-
-        // Development theme reloading
         themeReload = WebloggerConfig.getBooleanProperty("themes.reload.mode");
     }
 
@@ -108,22 +104,7 @@ public class SearchServlet extends HttpServlet {
 
         // Development only. Reload if theme has been modified
         if (themeReload && !weblog.getEditorTheme().equals(WeblogTheme.CUSTOM)) {
-
-            try {
-                ThemeManager manager = WebloggerFactory.getWeblogger().getThemeManager();
-                boolean reloaded = manager.reLoadThemeFromDisk(weblog.getEditorTheme());
-                if (reloaded) {
-                    if (WebloggerRuntimeConfig.isSiteWideWeblog(searchRequest.getWeblogHandle())) {
-                        SiteWideCache.getInstance().clear();
-                    } else {
-                        WeblogPageCache.getInstance().clear();
-                    }
-                    I18nMessages.reloadBundle(weblog.getLocaleInstance());
-                }
-
-            } catch (Exception ex) {
-                log.error("ERROR - reloading theme " + ex);
-            }
+            reloadTheme(weblog);
         }
 
         // do we need to force a specific locale for the request?
@@ -132,23 +113,7 @@ public class SearchServlet extends HttpServlet {
         }
 
         // lookup template to use for rendering
-        ThemeTemplate page = null;
-        try {
-            // try looking for a specific search page
-            page = weblog.getTheme().getTemplateByAction(ThemeTemplate.ComponentType.SEARCH);
-
-            // if not found then fall back on default page
-            if (page == null) {
-                page = weblog.getTheme().getDefaultTemplate();
-            }
-
-            // if still null then that's a problem
-            if (page == null) {
-                throw new WebloggerException("Could not lookup default page for weblog " + weblog.getHandle());
-            }
-        } catch (Exception e) {
-            log.error("Error getting default page for weblog " + weblog.getHandle(), e);
-        }
+        ThemeTemplate page = getTemplate(weblog);
 
         // set the content type
         response.setContentType("text/html; charset=utf-8");
@@ -186,7 +151,7 @@ public class SearchServlet extends HttpServlet {
             ModelLoader.loadModels(searchModels, model, initData, true);
 
             // Load special models for site-wide blog
-            if (WebloggerRuntimeConfig.isSiteWideWeblog(weblog.getHandle())) {
+            if (WebloggerRuntimeConfig.isSiteWideWeblog(searchRequest.getWeblogHandle())) {
                 String siteModels = WebloggerConfig.getProperty("rendering.siteModels");
                 ModelLoader.loadModels(siteModels, model, initData, true);
             }
@@ -247,4 +212,42 @@ public class SearchServlet extends HttpServlet {
         log.debug("Exiting");
     }
 
+    private void reloadTheme(Weblog weblog) {
+        try {
+            ThemeManager manager = WebloggerFactory.getWeblogger().getThemeManager();
+            boolean reloaded = manager.reLoadThemeFromDisk(weblog.getEditorTheme());
+            if (reloaded) {
+                if (WebloggerRuntimeConfig.isSiteWideWeblog(weblog.getHandle())) {
+                    SiteWideCache.getInstance().clear();
+                } else {
+                    WeblogPageCache.getInstance().clear();
+                }
+                I18nMessages.reloadBundle(weblog.getLocaleInstance());
+            }
+
+        } catch (Exception ex) {
+            log.error("ERROR - reloading theme " + ex);
+        }
+    }
+
+    private ThemeTemplate getTemplate(Weblog weblog) {
+        try {
+            // try looking for a specific search page
+            ThemeTemplate page = weblog.getTheme().getTemplateByAction(ThemeTemplate.ComponentType.SEARCH);
+
+            // if not found then fall back on default page
+            if (page == null) {
+                page = weblog.getTheme().getDefaultTemplate();
+            }
+
+            // if still null then that's a problem
+            if (page == null) {
+                throw new WebloggerException("Could not lookup default page for weblog " + weblog.getHandle());
+            }
+            return page;
+        } catch (Exception e) {
+            log.error("Error getting default page for weblog " + weblog.getHandle(), e);
+            throw new RuntimeException(e);
+        }
+    }
 }
